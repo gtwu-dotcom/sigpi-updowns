@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>My Ups &amp; Downs</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ups &amp; Downs">
+<meta name="theme-color" content="#5b3fa8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235b3fa8'/%3E%3Cpath d='M20 38l12-16 12 16z' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one narrow column — your total, log a point, then your log */
+:root{
+  --bg:#f5f4f9;--surface:#ffffff;--fg:#1c1a26;--muted:#6a6680;--line:#e2dfeb;
+  --accent:#5b3fa8;--accent-soft:#ece7fa;
+  --up:#1d8455;--up-soft:#e2f4ea;--down:#c03d2a;--down-soft:#fbe7e3;
+  --display:"Bricolage Grotesque",system-ui,sans-serif;
+  --body:"Figtree",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#121019;--surface:#1b1824;--fg:#ece9f5;--muted:#9a95ad;--line:#2d2939;
+  --accent:#a68ff0;--accent-soft:#2a2340;
+  --up:#4fc48a;--up-soft:#173126;--down:#f0755c;--down-soft:#3a1d18;color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
+.wrap{max-width:680px;margin:0 auto;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:24px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(2rem,8vw,2.8rem);line-height:1;margin:6px 0 8px;text-wrap:balance;letter-spacing:-.01em}
+h2{font-family:var(--display);font-weight:600;font-size:1.15rem;margin:0}
+.sub{color:var(--muted);font-size:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.total{background:var(--accent-soft);border-color:transparent;gap:6px}
+.t-body{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.big{font-family:var(--display);font-weight:800;font-size:clamp(3.2rem,16vw,4.6rem);line-height:1;font-variant-numeric:tabular-nums}
+.big.pos{color:var(--up)}.big.neg{color:var(--down)}
+.t-meta{font-family:var(--mono);font-size:13px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+.t-meta .u{color:var(--up)}.t-meta .d{color:var(--down)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.02em;flex:1 1 160px;min-width:0}
+label.f.amt{flex:0 0 96px}
+input{font:inherit;font-size:16px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transparent;color:inherit;background:none}
+.b-up,.b-down{font-weight:600;font-size:16px;padding:12px}
+.b-up{background:var(--up);color:var(--surface)}
+.b-down{background:var(--down);color:var(--surface)}
+.status{font-size:13px;color:var(--muted);min-height:1em}
+.status.err{color:var(--down)}
+.tip{font-size:13px;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:10px 12px}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.e{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;padding:12px 14px;border-top:1px solid var(--line);align-items:start}
+.e:first-child{border-top:0}
+.meta{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;min-width:0}
+.date{font-family:var(--mono);font-size:12px;color:var(--muted);padding-top:2px}
+.from{font-weight:600;overflow-wrap:anywhere}
+.why{grid-column:2/4;color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+.why:empty{display:none}
+.amtc{font-family:var(--mono);font-weight:700;font-size:13px;padding:2px 8px;border-radius:6px;white-space:nowrap}
+.amtc.u{background:var(--up-soft);color:var(--up)}.amtc.d{background:var(--down-soft);color:var(--down)}
+.x{color:var(--muted);font-size:13px;padding:2px 6px}
+.x:hover{color:var(--down)}
+.confirm{display:flex;gap:6px;align-items:center;font-size:13px;flex-wrap:wrap}
+.confirm .yes{background:var(--down);color:var(--surface);padding:3px 10px}
+.confirm .no{background:var(--line);color:var(--fg);padding:3px 10px}
+.empty{padding:22px 16px;color:var(--muted);text-align:center;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">ΣΠ · Pledge ledger</div>
+    <h1>My Ups &amp; Downs</h1>
+    <div class="sub">Your own log, saved on this phone. Nobody else sees it.</div>
+  </header>
+
+  <section class="card total" aria-live="polite">
+    <span class="eyebrow">Your total</span>
+    <div id="tot"></div>
+  </section>
+
+  <form class="card" id="f" autocomplete="off">
+    <h2>Log a point</h2>
+    <div class="row">
+      <label class="f amt" for="am">Points<input id="am" type="number" inputmode="decimal" min="0.01" max="999" step="any" value="1" required></label>
+      <label class="f" for="fr">From<input id="fr" type="text" placeholder="Who gave it (optional)" maxlength="40"></label>
+    </div>
+    <label class="f" for="rs">Reason<input id="rs" type="text" placeholder="e.g. Cleaned the kitchen" maxlength="120"></label>
+    <div class="btns"><button type="submit" class="b-up" data-k="up">▲ Add up</button><button type="submit" class="b-down" data-k="down">▼ Add down</button></div>
+    <div class="status" id="st" role="status"></div>
+  </form>
+
+  <div class="tip">Tip: tap Share → <b>Add to Home Screen</b> so it opens like an app. Always use the same phone and browser, since your log is saved there.</div>
+
+  <section class="sec">
+    <div class="sec-head"><h2>Your log</h2><span id="tools"></span></div>
+    <div class="list" id="log"></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var LS='sigpi-my-updowns-v1';
+  var entries=[],pendingDel=null,confirmClear=false,msg='',msgErr=false,lastKind='up',storageOk=true;
+
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function f(x){return String(Math.round(x*100)/100)}
+  function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function fmtDate(iso){var d=new Date(iso+'T12:00:00');return isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+  function newId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+  function clean(e){
+    var n=Math.round(Math.min(Math.abs(Number(e.n))||1,999)*100)/100;
+    return {id:String(e.id||newId()),kind:e.kind==='down'?'down':'up',n:n>0?n:1,
+      from:String(e.from||'').trim().slice(0,40),reason:String(e.reason||'').trim().slice(0,120),
+      date:/^\d{4}-\d{2}-\d{2}$/.test(e.date||'')?e.date:today()};
+  }
+  function load(){try{var v=localStorage.getItem(LS);var o=v?JSON.parse(v):null;return o&&Array.isArray(o.entries)?o.entries.map(clean):[]}catch(e){storageOk=false;return []}}
+  function save(){try{localStorage.setItem(LS,JSON.stringify({entries:entries}));storageOk=true}catch(e){storageOk=false}}
+
+  function render(){
+    var u=0,d=0;entries.forEach(function(e){if(e.kind==='up')u+=e.n;else d+=e.n});var net=u-d;
+    document.getElementById('tot').innerHTML=entries.length?
+      '<div class="t-body"><span class="big '+(net>0?'pos':net<0?'neg':'')+'">'+(net>0?'+':'')+f(net)+'</span><div class="t-meta"><span class="u">▲'+f(u)+' ups</span><span class="d">▼'+f(d)+' downs</span><span>'+entries.length+(entries.length===1?' entry':' entries')+'</span></div></div>':
+      '<div class="t-body"><span class="big">0</span><div class="t-meta"><span>Fresh start. Log your first up or down below.</span></div></div>';
+    var st=document.getElementById('st');
+    if(!storageOk){st.textContent='This browser isn’t saving data (private mode?). Your log will disappear when you close it.';st.className='status err'}
+    else{st.textContent=msg;st.className='status'+(msgErr?' err':'')}
+    document.getElementById('tools').innerHTML=entries.length?(confirmClear?'<span class="confirm">Delete your whole log? <button type="button" class="yes" id="clrY">Delete</button><button type="button" class="no" id="clrN">Keep</button></span>':'<button type="button" class="x" id="clr">Start over</button>'):'';
+    var list=entries.map(function(e,i){return [e,i]}).sort(function(a,b){return a[0].date<b[0].date?1:a[0].date>b[0].date?-1:b[1]-a[1]});
+    document.getElementById('log').innerHTML=list.length?list.map(function(p){
+      var e=p[0],up=e.kind==='up';
+      var tail=pendingDel===e.id?'<span class="confirm">Remove? <button type="button" class="yes" data-y="'+esc(e.id)+'">Yes</button><button type="button" class="no" data-n>No</button></span>':'<button type="button" class="x" data-d="'+esc(e.id)+'" aria-label="Remove entry">Remove</button>';
+      return '<div class="e"><span class="date">'+fmtDate(e.date)+'</span><span class="meta"><span class="amtc '+(up?'u':'d')+'">'+(up?'+':'−')+f(e.n)+(up?' up':' down')+'</span>'+(e.from?'<span class="from">'+esc(e.from)+'</span>':'')+'</span>'+tail+'<span class="why">'+esc(e.reason)+'</span></div>';
+    }).join(''):'<div class="empty">Nothing logged yet.</div>';
+  }
+
+  var form=document.getElementById('f');
+  form.addEventListener('click',function(ev){var b=ev.target.closest('button[data-k]');if(b)lastKind=b.getAttribute('data-k')});
+  form.addEventListener('submit',function(ev){
+    ev.preventDefault();
+    var kind=(ev.submitter&&ev.submitter.getAttribute('data-k'))||lastKind;
+    var n=parseFloat(document.getElementById('am').value);
+    if(!(n>0)){msg='Enter a points amount above 0.';msgErr=true;render();return}
+    var e=clean({kind:kind,n:n,from:document.getElementById('fr').value,reason:document.getElementById('rs').value,date:today()});
+    entries.push(e);save();
+    document.getElementById('rs').value='';document.getElementById('fr').value='';document.getElementById('am').value='1';
+    msg=(kind==='up'?'▲ ':'▼ ')+f(e.n)+' '+(kind==='up'?'up':'down')+' added.';msgErr=false;render();
+  });
+
+  document.addEventListener('click',function(ev){
+    var t=ev.target;
+    if(t.closest('#clr')){confirmClear=true;render();return}
+    if(t.closest('#clrN')){confirmClear=false;render();return}
+    if(t.closest('#clrY')){entries=[];confirmClear=false;save();msg='Log cleared.';msgErr=false;render();return}
+    var d=t.closest('[data-d]');if(d){pendingDel=d.getAttribute('data-d');render();return}
+    if(t.closest('[data-n]')){pendingDel=null;render();return}
+    var y=t.closest('[data-y]');if(y){var id=y.getAttribute('data-y');entries=entries.filter(function(e){return e.id!==id});pendingDel=null;save();render()}
+  });
+
+  entries=load();
+  render();
+})();
+</script>
+</body>
+</html>
