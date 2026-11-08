@@ -8,6 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Ups &amp; Downs">
 <meta name="theme-color" content="#5b3fa8">
+<meta name="app-version" content="5">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235b3fa8'/%3E%3Cpath d='M20 38l12-16 12 16z' fill='white'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
@@ -235,8 +236,21 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     var y=t.closest('[data-y]');if(y){var id=y.getAttribute('data-y');entries=entries.filter(function(e){return e.id!==id});pendingDel=null;save();render()}
   });
 
+  var VER='5';
+  function checkUpdate(){
+    if(!window.fetch)return;
+    fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():''}).then(function(t){
+      var m=t.match(/name="app-version" content="([^"]+)"/);if(!m||m[1]===VER)return;
+      var tried='';try{tried=sessionStorage.getItem('ud-tried')||''}catch(e){}
+      if(tried===m[1])return;try{sessionStorage.setItem('ud-tried',m[1])}catch(e){}
+      location.replace(location.pathname+'?v='+m[1]);
+    }).catch(function(){});
+  }
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')checkUpdate()});
+
   entries=load();
   render();
+  checkUpdate();
 })();
 </script>
 </body>
