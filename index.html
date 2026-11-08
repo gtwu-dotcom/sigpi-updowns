@@ -8,7 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Ups &amp; Downs">
 <meta name="theme-color" content="#5b3fa8">
-<meta name="app-version" content="7">
+<meta name="app-version" content="8">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235b3fa8'/%3E%3Cpath d='M20 38l12-16 12 16z' fill='white'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
@@ -207,25 +207,31 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     if(/^\s*(ups?|downs?)\s*[:\-]?\s*$/i.test(s))return {header:'kind',kind:/down/i.test(s)?'down':'up'};
     if(/^\s*(total|net|sum)\b/i.test(s))return {skip:true};
     s=s.replace(/\s(?:from|by)\s*$/i,' ');
-    var m=s.match(/\sfor\s+(.+)$/i);if(m){reason=m[1].trim();s=s.slice(0,m.index)+' '}
+    var m=s.match(/\s(?:for|because|becuz|bc|b\/c|cuz|coz|cause|'cause|’cause|since|due to)\s+(.+)$/i);if(m){reason=m[1].trim();s=s.slice(0,m.index)+' '}
     if(reason&&!/\s(?:from|by)\s+[a-z]/i.test(s.replace(/\s(?:by|in)\s+\d+(?:\.\d+)?s\b/i,' '))){var rf=(' '+reason).match(/\s(?:from|by)\s+([a-z][\w.'’-]*(?:\s+[a-z][\w.'’-]*)?)\s*[.!]?$/i);if(rf){from=cap(rf[1]);reason=(' '+reason).slice(0,rf.index).trim()}}
     s=s.replace(/\s(?:by|in)\s+(\d+(?:\.\d+)?)s\b/i,function(_,x){each=parseFloat(x);return ' '});
     if(!from){m=s.match(/\s(?:by|from)\s+([a-z][\w.'’-]*(?:\s+[a-z][\w.'’-]*)?)\s*$/i)||s.match(/\s(?:by|from)\s+([a-z][\w.'’-]*)/i);
       if(m){from=cap(m[1].trim());s=s.replace(m[0],' ')}}
-    var kind=null,n=null,words={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,a:1,an:1};
+    var kind=null,n=null,words={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,hundred:100,a:1,an:1,half:0.5,couple:2};
+    var NW='one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|hundred|half|couple';
     m=s.match(/(\d+(?:\.\d+)?)\s*(ups?|downs?|u|d)\b/i);
     if(m){n=parseFloat(m[1]);kind=/^d/i.test(m[2])?'down':'up';s=s.replace(m[0],' ')}
-    if(!kind){m=s.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|an?)\s+(ups?|downs?)\b/i);if(m){n=words[m[1].toLowerCase()];kind=/^d/i.test(m[2])?'down':'up';s=s.replace(m[0],' ')}}
+    if(!kind){m=s.match(new RegExp('\\b(?:a\\s+)?('+NW+'|an?)\\s+(?:of\\s+)?(ups?|downs?)\\b','i'));if(m){n=words[m[1].toLowerCase()];kind=/^d/i.test(m[2])?'down':'up';s=s.replace(m[0],' ')}}
     if(!kind){m=s.match(/\b(ups?|downs?)\s*(?:x\s*)?(\d+(?:\.\d+)?)\b/i);if(m){n=parseFloat(m[2]);kind=/^d/i.test(m[1])?'down':'up';s=s.replace(m[0],' ')}}
     if(!kind){m=s.match(/(^|\s)([+-])\s?(\d+(?:\.\d+)?)\b/);if(m&&!(m[2]==='-'&&/\s-\s\d/.test(m[0]+' ')&&m[0].indexOf('- ')>-1)){n=parseFloat(m[3]);kind=m[2]==='+'?'up':'down';s=s.replace(m[0],' ')}}
     if(!kind&&/\b(ups?|downs?)\b/i.test(s)){kind=/\bdowns?\b/i.test(s)?'down':'up';s=s.replace(/\b(ups?|downs?)\b/i,' ')}
     if(n==null){m=s.match(/(?:^|\s)x?\s?(\d+(?:\.\d+)?)\b/i);if(m){n=parseFloat(m[1]);s=s.replace(m[0],' ')}}
+    if(n==null){m=s.match(new RegExp('\\b(?:a\\s+)?('+NW+')\\b','i'));if(m){n=words[m[1].toLowerCase()];s=s.replace(m[0],' ')}}
     if(!kind)kind=ctx.kind||null;
+    if(!kind&&n!=null){
+      if(/\b(lose|loses|lost|losing|minus|deduct|deducted|dock|docked|penalty|subtract|take away|taken away|negative)\b/i.test(text))kind='down';
+      else if(reason||from||/\b(take|takes|took|taking|get|gets|got|give|gives|gave|giving|receive|received|add|plus|everyone|everybody|y'?all|all of you|pc|pledges?)\b/i.test(text)||/(^|\s)\+\d/.test(text))kind='up';
+    }
     if(!kind)return {err:'No up or down in this line.'};
     if(!(n>0))return {err:'No amount in this line.'};
     if(n>999)return {err:'Over 999 in one line.'};
     if(!from||!reason){
-      var left=s.replace(/\b(take|took|taking|give|gave|got|get|gets|received|receive|me|i|my)\b/ig,' ').replace(/\s+/g,' ').trim();
+      var left=s.replace(/\b(take|takes|took|taking|give|gives|gave|got|get|gets|received|receive|me|i|my|everyone|everybody|y'?all|all|pledges?|guys|yourselves|yourself|you|please|pls|go ahead and|should|can|ok|okay|add|plus|of|ups?|downs?)\b/ig,' ').replace(/\s+/g,' ').trim();
       var segs=left.split(/\s[-|:]\s|:\s|\s-|-\s|,|\(|\)|\[|\]|\s\/\s/).map(function(x){return x.replace(/^[\s\-:|.]+|[\s\-:|.]+$/g,'')}).filter(function(x){return /[a-z0-9_]/i.test(x)});
       if(!from&&segs.length>1&&/^[a-z][\w.'’-]*(\s[a-z][\w.'’-]*)?$/i.test(segs[0])){from=cap(segs.shift())}
       if(!reason&&segs.length)reason=segs.join(' - ');
@@ -283,7 +289,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     var y=t.closest('[data-y]');if(y){var id=y.getAttribute('data-y');entries=entries.filter(function(e){return e.id!==id});pendingDel=null;save();render()}
   });
 
-  var VER='7';
+  var VER='8';
   function checkUpdate(){
     if(!window.fetch)return;
     fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():''}).then(function(t){
