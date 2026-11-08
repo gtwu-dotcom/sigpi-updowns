@@ -8,7 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Ups &amp; Downs">
 <meta name="theme-color" content="#5b3fa8">
-<meta name="app-version" content="11">
+<meta name="app-version" content="12">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235b3fa8'/%3E%3Cpath d='M20 38l12-16 12 16z' fill='white'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
@@ -146,7 +146,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
         <label class="f" for="gsFirst">First name<input id="gsFirst" type="text" autocomplete="given-name" maxlength="40"></label>
         <label class="f" for="gsLast">Last name<input id="gsLast" type="text" autocomplete="family-name" maxlength="40"></label>
       </div>
-      <label class="f" for="gsUrl">Sheet link (from the pledge class chat)<input id="gsUrl" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
+      <label class="f" for="gsUrl">Sheet link (already filled in)<input id="gsUrl" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
       <button type="button" class="b-copy" id="gsSave">Save</button>
     </div>
     <div id="gsReady" hidden>
@@ -343,7 +343,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     var y=t.closest('[data-y]');if(y){var id=y.getAttribute('data-y');entries=entries.filter(function(e){return e.id!==id});pendingDel=null;save();render()}
   });
 
-  var VER='11';
+  var VER='12';
   function checkUpdate(){
     if(!window.fetch)return;
     fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():''}).then(function(t){
@@ -359,7 +359,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   render();
   checkUpdate();
 
-  var GSK='sigpi-sheet',gsPending=null;
+  var GSK='sigpi-sheet',gsPending=null,GS_DEFAULT='https://script.google.com/a/macros/scu.edu/s/AKfycbyJRta6ugHgfDqV9VOw160CAExHAhGXyKVmJnWezfeWidgkbzzPQ1vyjCKsCtjs-TifBA/exec';
   function gsCfg(){try{var o=JSON.parse(localStorage.getItem(GSK)||'null');return o&&o.url?o:null}catch(e){return null}}
   function gsSet(o){try{if(o)localStorage.setItem(GSK,JSON.stringify(o));else localStorage.removeItem(GSK)}catch(e){}}
   function gsShow(){var c=gsCfg();document.getElementById('gsSetup').hidden=!!c;document.getElementById('gsReady').hidden=!c;document.getElementById('gsChange').hidden=!c;document.getElementById('gsConfirm').hidden=true;
@@ -373,13 +373,13 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   document.getElementById('gsSave').addEventListener('click',function(){
     var first=document.getElementById('gsFirst').value.trim(),last=document.getElementById('gsLast').value.trim(),url=document.getElementById('gsUrl').value.trim();
     if(!first||!last){gsMsg('Enter your first and last name exactly as they are in the sheet.',true);return}
-    if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)){gsMsg('That doesn’t look like the sheet link. It starts with https://script.google.com/macros/s/ and ends with /exec.',true);return}
+    if(!/^https:\/\/script\.google\.com\/(?:a\/macros\/[\w.-]+|macros)\/s\/[\w-]+\/exec$/.test(url)){gsMsg('That doesn’t look like the sheet link. It starts with https://script.google.com/macros/s/ and ends with /exec.',true);return}
     var old=gsCfg(),same=old&&old.url===url&&old.first.toLowerCase()===first.toLowerCase()&&old.last.toLowerCase()===last.toLowerCase();
     gsSet({first:first,last:last,url:url,token:same?old.token:(old&&old.token&&old.first.toLowerCase()===first.toLowerCase()&&old.last.toLowerCase()===last.toLowerCase()?old.token:'')});
     gsShow();gsMsg('Checking the sheet for '+first+' '+last+'…');
     gsCall({action:'get'}).then(function(j){gsMsg(j.claimedByOther?'Found your row, but it’s already linked to another phone. Ask the sheet owner to reset it.':'Found your row. You’re all set.',!!j.claimedByOther)}).catch(function(e){document.getElementById('gsChange').click();gsMsg(e.message,true)});
   });
-  document.getElementById('gsChange').addEventListener('click',function(){var c=gsCfg();if(c){document.getElementById('gsFirst').value=c.first;document.getElementById('gsLast').value=c.last;document.getElementById('gsUrl').value=c.url}
+  document.getElementById('gsChange').addEventListener('click',function(){var c=gsCfg();if(c){document.getElementById('gsFirst').value=c.first;document.getElementById('gsLast').value=c.last;document.getElementById('gsUrl').value=c.url||GS_DEFAULT}
     document.getElementById('gsSetup').hidden=false;document.getElementById('gsReady').hidden=true;document.getElementById('gsChange').hidden=true;document.getElementById('gsConfirm').hidden=true;gsMsg('')});
   document.getElementById('gsGo').addEventListener('click',function(){
     var t=totals();gsMsg('Checking the sheet…');document.getElementById('gsConfirm').hidden=true;
@@ -396,7 +396,8 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     gsCall({action:'set',ups:t.u,downs:t.d}).then(function(j){var c=gsCfg();if(j.token&&c){c.token=j.token;gsSet(c)}
       gsMsg('Sheet updated: ▲'+f(num(j.ups))+' ups, ▼'+f(num(j.downs))+' downs, net '+f(num(j.net))+'.')}).catch(function(e){gsMsg('Couldn’t update the sheet: '+e.message,true)});
   });
-  try{var oldUrl=localStorage.getItem('sigpi-sheet-url');if(oldUrl&&!gsCfg()){localStorage.removeItem('sigpi-sheet-url');document.getElementById('gsUrl').value=oldUrl}}catch(e){}
+  document.getElementById('gsUrl').value=GS_DEFAULT;
+  try{var oldUrl=localStorage.getItem('sigpi-sheet-url');if(oldUrl)localStorage.removeItem('sigpi-sheet-url')}catch(e){}
   gsShow();
 })();
 </script>
