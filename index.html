@@ -364,11 +364,11 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   checkUpdate();
 
   var GSK='sigpi-sheet',gsPending=null,GS_DEFAULT='https://script.google.com/macros/s/AKfycbxxFpEDTbtUdtQfklGG4VolYnxNr7y2QXFsjiSD2NFkWaxzLB5P95lpPRfgWUJs8dsCjA/exec';
-  var GS_OLD=['https://script.google.com/a/macros/scu.edu/s/AKfycbyJRta6ugHgfDqV9VOw160CAExHAhGXyKVmJnWezfeWidgkbzzPQ1vyjCKsCtjs-TifBA/exec'];
   function gsCfg(){try{var o=JSON.parse(localStorage.getItem(GSK)||'null');return o&&o.url?o:null}catch(e){return null}}
   function gsSet(o){try{if(o)localStorage.setItem(GSK,JSON.stringify(o));else localStorage.removeItem(GSK)}catch(e){}}
-  // Phones still saved with the old built-in link move to the new one (the old token belonged to the old script).
-  (function(){var c=gsCfg();if(c&&GS_OLD.indexOf(c.url)>=0){c.url=GS_DEFAULT;c.token='';gsSet(c)}})();
+  // There's one sheet for the whole pledge class: any phone saved with a different link (an old one, or a
+  // pasted one) moves to the current link. Its token belonged to the other script, so it's cleared.
+  (function(){var c=gsCfg();if(c&&c.url!==GS_DEFAULT){c.url=GS_DEFAULT;c.token='';gsSet(c)}})();
   function gsOpen(open){var c=gsCfg(),s=document.getElementById('gsSetup');
     if(open){document.getElementById('gsFirst').value=c?c.first:document.getElementById('gsFirst').value;document.getElementById('gsLast').value=c?c.last:document.getElementById('gsLast').value;document.getElementById('gsUrl').value=(c&&c.url)||GS_DEFAULT;document.getElementById('gsConfirm').hidden=true;gsPending=null}
     s.hidden=!open;document.getElementById('gsToggle').setAttribute('aria-expanded',open?'true':'false');
@@ -381,7 +381,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   function totals(){var u=0,d=0;entries.forEach(function(e){if(e.kind==='up')u+=e.n;else d+=e.n});u=Math.round(u*1000)/1000;d=Math.round(d*1000)/1000;return {u:u,d:d,n:Math.round((u-d)*1000)/1000}}
   function gsCall(params){var c=gsCfg();params.first=c.first;params.last=c.last;if(c.token)params.token=c.token;
     var q=Object.keys(params).map(function(k){return k+'='+encodeURIComponent(params[k])}).join('&');
-    return fetch(c.url+'?'+q+'&t='+Date.now(),{redirect:'follow'}).catch(function(){throw new Error('Couldn’t connect to the sheet link. It may only allow people signed in to Google (ask Gavin).')}).then(function(r){return r.json().catch(function(){throw new Error('The sheet link sent back a Google sign-in page instead of data (ask Gavin).')})}).then(function(j){if(!j||!j.ok)throw new Error((j&&j.error)||'The sheet didn’t answer.');return j})}
+    return fetch(c.url+'?'+q+'&t='+Date.now(),{redirect:'follow'}).catch(function(){throw new Error('Couldn’t connect to the sheet. Close this app fully, open it again, and try once more. If it still fails, ask Gavin.')}).then(function(r){return r.json().catch(function(){throw new Error('The sheet link sent back a Google sign-in page instead of data (ask Gavin).')})}).then(function(j){if(!j||!j.ok)throw new Error((j&&j.error)||'The sheet didn’t answer.');return j})}
   document.getElementById('gsSave').addEventListener('click',function(){
     var first=document.getElementById('gsFirst').value.trim(),last=document.getElementById('gsLast').value.trim(),url=document.getElementById('gsUrl').value.trim();
     if(!first||!last){gsMsg('Enter your first and last name exactly as they are in the sheet.',true);return}
