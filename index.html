@@ -8,7 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Ups &amp; Downs">
 <meta name="theme-color" content="#5b3fa8">
-<meta name="app-version" content="8">
+<meta name="app-version" content="9">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235b3fa8'/%3E%3Cpath d='M20 38l12-16 12 16z' fill='white'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
@@ -79,6 +79,14 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
 .confirm{display:flex;gap:6px;align-items:center;font-size:13px;flex-wrap:wrap}
 .confirm .yes{background:var(--down);color:var(--surface);padding:3px 10px}
 .confirm .no{background:var(--line);color:var(--fg);padding:3px 10px}
+.acts{display:flex;gap:2px;align-items:center}
+.ef{display:flex;flex-direction:column;gap:10px;background:var(--accent-soft);align-items:stretch}
+.card>label.f,.ef>label.f{flex:none}
+.ef-row{display:flex;gap:10px;flex-wrap:wrap}
+.ef select{font:inherit;font-size:16px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 8px;width:100%}
+.ef-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ef-save{background:var(--accent);color:var(--surface);font-weight:600;padding:10px}
+.ef-cancel{background:var(--line);color:var(--fg);font-weight:600;padding:10px}
 .empty{padding:22px 16px;color:var(--muted);text-align:center;font-size:14px}
 </style>
 </head>
@@ -129,7 +137,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
 <script>
 (function(){
   var LS='sigpi-my-updowns-v1';
-  var lastBatch=[],entries=[],pendingDel=null,confirmClear=false,msg='',msgErr=false,lastKind='up',storageOk=true;
+  var editingId=null,lastBatch=[],entries=[],pendingDel=null,confirmClear=false,msg='',msgErr=false,lastKind='up',storageOk=true;
 
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function f(x){return String(Math.round(x*100)/100)}
@@ -157,7 +165,14 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     var list=entries.map(function(e,i){return [e,i]}).sort(function(a,b){return a[0].date<b[0].date?1:a[0].date>b[0].date?-1:b[1]-a[1]});
     document.getElementById('log').innerHTML=list.length?list.map(function(p){
       var e=p[0],up=e.kind==='up';
-      var tail=pendingDel===e.id?'<span class="confirm">Remove? <button type="button" class="yes" data-y="'+esc(e.id)+'">Yes</button><button type="button" class="no" data-n>No</button></span>':'<button type="button" class="x" data-d="'+esc(e.id)+'" aria-label="Remove entry">Remove</button>';
+      var tail=pendingDel===e.id?'<span class="confirm">Remove? <button type="button" class="yes" data-y="'+esc(e.id)+'">Yes</button><button type="button" class="no" data-n>No</button></span>':'<span class="acts"><button type="button" class="x" data-ed="'+esc(e.id)+'">Edit</button><button type="button" class="x" data-d="'+esc(e.id)+'" aria-label="Remove entry">Remove</button></span>';
+      if(editingId===e.id){var k=esc(e.id);return '<form class="e ef" data-ef="'+k+'" autocomplete="off">'+
+        '<div class="ef-row"><label class="f amt">Points<input name="n" type="number" inputmode="decimal" min="0.01" max="999" step="any" required value="'+f(e.n)+'"></label>'+
+        '<label class="f amt">Type<select name="kind"><option value="up"'+(up?' selected':'')+'>Up</option><option value="down"'+(up?'':' selected')+'>Down</option></select></label>'+
+        '<label class="f">Date<input name="date" type="date" required value="'+esc(e.date)+'"></label></div>'+
+        '<label class="f">From<input name="from" type="text" maxlength="40" value="'+esc(e.from)+'" placeholder="Who gave it"></label>'+
+        '<label class="f">Reason<input name="reason" type="text" maxlength="120" value="'+esc(e.reason)+'" placeholder="Why"></label>'+
+        '<div class="ef-btns"><button type="submit" class="ef-save">Save</button><button type="button" class="ef-cancel" data-ec>Cancel</button></div></form>'}
       return '<div class="e"><span class="date">'+fmtDate(e.date)+'</span><span class="meta"><span class="amtc '+(up?'u':'d')+'">'+(up?'+':'−')+f(e.n)+(up?' up':' down')+'</span>'+(e.from?'<span class="from">'+esc(e.from)+'</span>':'')+'</span>'+tail+'<span class="why">'+esc(e.reason)+'</span></div>';
     }).join(''):'<div class="empty">Nothing logged yet.</div>';
   }
@@ -278,18 +293,29 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   document.getElementById('qt').addEventListener('input',fit);
   document.getElementById('qt').addEventListener('input',function(){var qs=document.getElementById('qs');if(qs.className.indexOf('err')>-1){qs.textContent='';qs.className='status'}});
 
+  document.addEventListener('submit',function(ev){
+    var fm=ev.target.closest&&ev.target.closest('form[data-ef]');if(!fm)return;
+    ev.preventDefault();
+    var id=fm.getAttribute('data-ef'),n=parseFloat(fm.elements.n.value);
+    if(!(n>0)){fm.elements.n.focus();return}
+    for(var i=0;i<entries.length;i++)if(entries[i].id===id){entries[i]=clean({id:id,kind:fm.elements.kind.value,n:n,from:fm.elements.from.value,reason:fm.elements.reason.value,date:fm.elements.date.value||entries[i].date});break}
+    editingId=null;save();msg='Entry updated.';msgErr=false;render();
+  });
+
   document.addEventListener('click',function(ev){
     var t=ev.target;
     if(t.closest('#undo')){var ids=lastBatch;entries=entries.filter(function(e){return ids.indexOf(e.id)<0});lastBatch=[];save();var q=document.getElementById('qs');q.textContent='';q.className='status';render();return}
     if(t.closest('#clr')){confirmClear=true;render();return}
     if(t.closest('#clrN')){confirmClear=false;render();return}
     if(t.closest('#clrY')){entries=[];confirmClear=false;save();msg='Log cleared.';msgErr=false;render();return}
+    var ed=t.closest('[data-ed]');if(ed){editingId=ed.getAttribute('data-ed');pendingDel=null;render();var fm=document.querySelector('form[data-ef]');if(fm){fm.scrollIntoView({block:'nearest'});var fi=fm.querySelector('input[name=from]');if(fi&&!fi.value)fi.focus()}return}
+    if(t.closest('[data-ec]')){editingId=null;render();return}
     var d=t.closest('[data-d]');if(d){pendingDel=d.getAttribute('data-d');render();return}
     if(t.closest('[data-n]')){pendingDel=null;render();return}
     var y=t.closest('[data-y]');if(y){var id=y.getAttribute('data-y');entries=entries.filter(function(e){return e.id!==id});pendingDel=null;save();render()}
   });
 
-  var VER='8';
+  var VER='9';
   function checkUpdate(){
     if(!window.fetch)return;
     fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():''}).then(function(t){
