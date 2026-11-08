@@ -8,7 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Ups &amp; Downs">
 <meta name="theme-color" content="#5b3fa8">
-<meta name="app-version" content="9">
+<meta name="app-version" content="10">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235b3fa8'/%3E%3Cpath d='M20 38l12-16 12 16z' fill='white'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
@@ -57,6 +57,9 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
 .qrow textarea{flex:1;min-width:0;font:inherit;font-size:16px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;resize:none;max-height:260px;overflow-y:auto;line-height:1.4}
 .qrow textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .b-q{background:var(--accent);color:var(--surface);font-weight:600;font-size:16px;padding:10px 18px}
+.gs-btn{width:100%}
+.gs-confirm{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gs-change{align-self:flex-start;padding:2px 0}
 .b-copy{width:100%;padding:12px;font-weight:600;font-size:15px;background:var(--surface);border:1px solid var(--line);color:var(--fg)}
 .bkt{width:100%;min-height:90px;font:12px var(--mono);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px}
 .status{font-size:13px;color:var(--muted);min-height:1em}
@@ -131,6 +134,22 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     <button type="button" class="b-copy" id="bk">Copy backup of all my data</button>
     <div class="status" id="bks" role="status"></div>
     <textarea id="bkt" class="bkt" readonly hidden aria-label="Backup code"></textarea>
+  </section>
+
+  <section class="card" id="gs">
+    <h2>Google Sheet</h2>
+    <div id="gsSetup">
+      <label class="f" for="gsUrl">Sheet script link<input id="gsUrl" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
+      <button type="button" class="b-copy" id="gsSave" style="margin-top:10px">Save link</button>
+    </div>
+    <div id="gsReady" hidden>
+      <button type="button" class="b-q gs-btn" id="gsGo">Update Google Sheet</button>
+    </div>
+    <div class="status" id="gss" role="status"></div>
+    <div class="gs-confirm" id="gsConfirm" hidden>
+      <button type="button" class="ef-save" id="gsYes">Update sheet</button><button type="button" class="ef-cancel" id="gsNo">Cancel</button>
+    </div>
+    <button type="button" class="x gs-change" id="gsChange" hidden>Change sheet link</button>
   </section>
 </div>
 
@@ -315,7 +334,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     var y=t.closest('[data-y]');if(y){var id=y.getAttribute('data-y');entries=entries.filter(function(e){return e.id!==id});pendingDel=null;save();render()}
   });
 
-  var VER='9';
+  var VER='10';
   function checkUpdate(){
     if(!window.fetch)return;
     fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():''}).then(function(t){
@@ -330,6 +349,36 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   entries=load();
   render();
   checkUpdate();
+
+  var GSK='sigpi-sheet-url',gsPending=null;
+  function gsGet(){try{return localStorage.getItem(GSK)||''}catch(e){return ''}}
+  function gsShow(){var u=gsGet();document.getElementById('gsSetup').hidden=!!u;document.getElementById('gsReady').hidden=!u;document.getElementById('gsChange').hidden=!u;document.getElementById('gsConfirm').hidden=true}
+  function gsMsg(t,err){var el=document.getElementById('gss');el.textContent=t;el.className='status'+(err?' err':'')}
+  function num(v){var x=parseFloat(String(v==null?'':v).replace(/,/g,''));return isFinite(x)?x:0}
+  function totals(){var u=0,d=0;entries.forEach(function(e){if(e.kind==='up')u+=e.n;else d+=e.n});u=Math.round(u*1000)/1000;d=Math.round(d*1000)/1000;return {u:u,d:d,n:Math.round((u-d)*1000)/1000}}
+  function gsCall(params){var u=gsGet();var q=Object.keys(params).map(function(k){return k+'='+encodeURIComponent(params[k])}).join('&');
+    return fetch(u+(u.indexOf('?')>-1?'&':'?')+q+'&t='+Date.now(),{redirect:'follow'}).then(function(r){return r.json()}).then(function(j){if(!j||!j.ok)throw new Error((j&&j.error)||'The sheet didn’t answer.');return j})}
+  document.getElementById('gsSave').addEventListener('click',function(){
+    var v=document.getElementById('gsUrl').value.trim();
+    if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(v)){gsMsg('That doesn’t look like the script link. It starts with https://script.google.com/macros/s/ and ends with /exec.',true);return}
+    try{localStorage.setItem(GSK,v)}catch(e){}
+    gsShow();gsMsg('Link saved.')
+  });
+  document.getElementById('gsChange').addEventListener('click',function(){try{localStorage.removeItem(GSK)}catch(e){}document.getElementById('gsUrl').value='';gsShow();gsMsg('')});
+  document.getElementById('gsGo').addEventListener('click',function(){
+    var t=totals();gsMsg('Checking the sheet…');document.getElementById('gsConfirm').hidden=true;
+    gsCall({action:'get'}).then(function(j){
+      gsPending=t;
+      gsMsg('Sheet now: ▲'+f(num(j.ups))+' ups, ▼'+f(num(j.downs))+' downs, net '+f(num(j.net))+'. Change it to ▲'+f(t.u)+' ups, ▼'+f(t.d)+' downs, net '+f(t.n)+'?');
+      document.getElementById('gsConfirm').hidden=false;
+    }).catch(function(e){gsMsg('Couldn’t reach the sheet: '+e.message,true)});
+  });
+  document.getElementById('gsNo').addEventListener('click',function(){gsPending=null;document.getElementById('gsConfirm').hidden=true;gsMsg('')});
+  document.getElementById('gsYes').addEventListener('click',function(){
+    if(!gsPending)return;var t=gsPending;gsPending=null;document.getElementById('gsConfirm').hidden=true;gsMsg('Updating…');
+    gsCall({action:'set',ups:t.u,downs:t.d}).then(function(j){gsMsg('Sheet updated: ▲'+f(num(j.ups))+' ups, ▼'+f(num(j.downs))+' downs, net '+f(num(j.net))+'.')}).catch(function(e){gsMsg('Couldn’t update the sheet: '+e.message,true)});
+  });
+  gsShow();
 })();
 </script>
 </body>
