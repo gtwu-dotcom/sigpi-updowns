@@ -54,6 +54,8 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
 .qrow{display:flex;gap:10px}
 .qrow input{flex:1;min-width:0}
 .b-q{background:var(--accent);color:var(--surface);font-weight:600;font-size:16px;padding:10px 18px}
+.b-copy{width:100%;padding:12px;font-weight:600;font-size:15px;background:var(--surface);border:1px solid var(--line);color:var(--fg)}
+.bkt{width:100%;min-height:90px;font:12px var(--mono);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px}
 .status{font-size:13px;color:var(--muted);min-height:1em}
 .status.err{color:var(--down)}
 .tip{font-size:13px;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:10px 12px}
@@ -92,7 +94,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
 
   <form class="card" id="q" autocomplete="off">
     <h2>Quick add</h2>
-    <div class="qrow"><input id="qt" type="text" aria-label="Type what happened" maxlength="200"><button type="submit" class="b-q">Add</button></div>
+    <div class="qrow"><input id="qt" type="text" aria-label="Type what happened"><button type="submit" class="b-q">Add</button></div>
     <div class="status" id="qs" role="status"></div>
   </form>
 
@@ -112,6 +114,12 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   <section class="sec">
     <div class="sec-head"><h2>Your log</h2><span id="tools"></span></div>
     <div class="list" id="log"></div>
+  </section>
+
+  <section class="sec">
+    <button type="button" class="b-copy" id="bk">Copy backup of all my data</button>
+    <div class="status" id="bks" role="status"></div>
+    <textarea id="bkt" class="bkt" readonly hidden aria-label="Backup code"></textarea>
   </section>
 </div>
 
@@ -164,6 +172,15 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     msg=(kind==='up'?'▲ ':'▼ ')+f(e.n)+' '+(kind==='up'?'up':'down')+' added.';msgErr=false;render();
   });
 
+  var BK='updowns-backup:';
+  function backupCode(){return BK+btoa(unescape(encodeURIComponent(JSON.stringify({v:1,e:entries.map(function(e){return [e.id,e.kind==='down'?'d':'u',e.n,e.from,e.reason,e.date]})}))))}
+  document.getElementById('bk').addEventListener('click',function(){
+    var bks=document.getElementById('bks'),ta=document.getElementById('bkt');
+    if(!entries.length){bks.textContent='Nothing to back up yet.';bks.className='status';return}
+    var code=backupCode();
+    function shown(){ta.hidden=false;ta.value=code;ta.focus();ta.select();bks.textContent='Couldn’t copy automatically. Select all the text below and copy it.';bks.className='status err'}
+    try{navigator.clipboard.writeText(code).then(function(){ta.hidden=true;bks.textContent='Copied '+entries.length+(entries.length===1?' entry':' entries')+'. Save it in Notes. To restore, paste it into Quick add and tap Add.';bks.className='status'},shown)}catch(err){shown()}
+  });
   function cap(s){return s.replace(/\b\w/g,function(c){return c.toUpperCase()})}
   function parse(text){
     var s=' '+text.trim()+' ',reason='',from='',each=1;
@@ -182,7 +199,18 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   }
   document.getElementById('q').addEventListener('submit',function(ev){
     ev.preventDefault();
-    var box=document.getElementById('qt'),qs=document.getElementById('qs'),r=parse(box.value);
+    var box=document.getElementById('qt'),qs=document.getElementById('qs');
+    var raw=box.value.trim(),bi=raw.indexOf(BK);
+    if(bi>-1){
+      var data;try{data=JSON.parse(decodeURIComponent(escape(atob(raw.slice(bi+BK.length).replace(/\s+/g,'')))))}catch(err){data=null}
+      if(!data||!Array.isArray(data.e)){qs.textContent='That backup code looks incomplete. Copy it again and paste the whole thing.';qs.className='status err';return}
+      var have={},added=[];entries.forEach(function(e){have[e.id]=1});
+      data.e.forEach(function(x){if(!Array.isArray(x))return;var e=clean({id:x[0],kind:x[1]==='d'?'down':'up',n:x[2],from:x[3],reason:x[4],date:x[5]});if(!have[e.id]){have[e.id]=1;entries.push(e);added.push(e.id)}});
+      lastBatch=added;save();box.value='';
+      qs.innerHTML=esc(added.length?'Restored '+added.length+(added.length===1?' entry':' entries'):'Everything in that backup is already here')+(added.length?' <button type="button" class="x" id="undo">Undo</button>':'');
+      qs.className='status';msg='';render();return;
+    }
+    var r=parse(box.value);
     if(!box.value.trim()){qs.textContent='Type what happened first.';qs.className='status err';return}
     if(r.err){qs.textContent=r.err;qs.className='status err';return}
     var chunk=r.chunk>0?r.chunk:1,count=Math.ceil(r.n/chunk-1e-9);
