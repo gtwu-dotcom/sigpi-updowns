@@ -369,7 +369,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   function totals(){var u=0,d=0;entries.forEach(function(e){if(e.kind==='up')u+=e.n;else d+=e.n});u=Math.round(u*1000)/1000;d=Math.round(d*1000)/1000;return {u:u,d:d,n:Math.round((u-d)*1000)/1000}}
   function gsCall(params){var c=gsCfg();params.first=c.first;params.last=c.last;if(c.token)params.token=c.token;
     var q=Object.keys(params).map(function(k){return k+'='+encodeURIComponent(params[k])}).join('&');
-    return fetch(c.url+'?'+q+'&t='+Date.now(),{redirect:'follow'}).then(function(r){return r.json()}).then(function(j){if(!j||!j.ok)throw new Error((j&&j.error)||'The sheet didn’t answer.');return j})}
+    return fetch(c.url+'?'+q+'&t='+Date.now(),{redirect:'follow'}).catch(function(){throw new Error('Couldn’t connect to the sheet link. It may only allow people signed in to Google (ask Gavin).')}).then(function(r){return r.json().catch(function(){throw new Error('The sheet link sent back a Google sign-in page instead of data (ask Gavin).')})}).then(function(j){if(!j||!j.ok)throw new Error((j&&j.error)||'The sheet didn’t answer.');return j})}
   document.getElementById('gsSave').addEventListener('click',function(){
     var first=document.getElementById('gsFirst').value.trim(),last=document.getElementById('gsLast').value.trim(),url=document.getElementById('gsUrl').value.trim();
     if(!first||!last){gsMsg('Enter your first and last name exactly as they are in the sheet.',true);return}
