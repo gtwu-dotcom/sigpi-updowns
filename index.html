@@ -8,7 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Ups &amp; Downs">
 <meta name="theme-color" content="#5b3fa8">
-<meta name="app-version" content="10">
+<meta name="app-version" content="11">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235b3fa8'/%3E%3Cpath d='M20 38l12-16 12 16z' fill='white'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
@@ -58,6 +58,9 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
 .qrow textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .b-q{background:var(--accent);color:var(--surface);font-weight:600;font-size:16px;padding:10px 18px}
 .gs-btn{width:100%}
+.gs-setup{display:flex;flex-direction:column;gap:10px}
+.gs-setup>label.f{flex:none}
+.gs-who{font-size:13px;color:var(--muted);margin-bottom:8px}
 .gs-confirm{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .gs-change{align-self:flex-start;padding:2px 0}
 .b-copy{width:100%;padding:12px;font-weight:600;font-size:15px;background:var(--surface);border:1px solid var(--line);color:var(--fg)}
@@ -138,18 +141,23 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
 
   <section class="card" id="gs">
     <h2>Google Sheet</h2>
-    <div id="gsSetup">
-      <label class="f" for="gsUrl">Sheet script link<input id="gsUrl" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
-      <button type="button" class="b-copy" id="gsSave" style="margin-top:10px">Save link</button>
+    <div id="gsSetup" class="gs-setup">
+      <div class="row">
+        <label class="f" for="gsFirst">First name<input id="gsFirst" type="text" autocomplete="given-name" maxlength="40"></label>
+        <label class="f" for="gsLast">Last name<input id="gsLast" type="text" autocomplete="family-name" maxlength="40"></label>
+      </div>
+      <label class="f" for="gsUrl">Sheet link (from the pledge class chat)<input id="gsUrl" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
+      <button type="button" class="b-copy" id="gsSave">Save</button>
     </div>
     <div id="gsReady" hidden>
+      <div class="gs-who" id="gsWho"></div>
       <button type="button" class="b-q gs-btn" id="gsGo">Update Google Sheet</button>
     </div>
     <div class="status" id="gss" role="status"></div>
     <div class="gs-confirm" id="gsConfirm" hidden>
       <button type="button" class="ef-save" id="gsYes">Update sheet</button><button type="button" class="ef-cancel" id="gsNo">Cancel</button>
     </div>
-    <button type="button" class="x gs-change" id="gsChange" hidden>Change sheet link</button>
+    <button type="button" class="x gs-change" id="gsChange" hidden>Change name or link</button>
   </section>
 </div>
 
@@ -210,7 +218,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   });
 
   var BK='updowns-backup:';
-  function backupCode(){return BK+btoa(unescape(encodeURIComponent(JSON.stringify({v:1,e:entries.map(function(e){return [e.id,e.kind==='down'?'d':'u',e.n,e.from,e.reason,e.date]})}))))}
+  function backupCode(){var gc=null;try{gc=JSON.parse(localStorage.getItem('sigpi-sheet')||'null')}catch(e){}return BK+btoa(unescape(encodeURIComponent(JSON.stringify({v:1,s:gc,e:entries.map(function(e){return [e.id,e.kind==='down'?'d':'u',e.n,e.from,e.reason,e.date]})}))))}
   document.getElementById('bk').addEventListener('click',function(){
     var bks=document.getElementById('bks'),ta=document.getElementById('bkt');
     if(!entries.length){bks.textContent='Nothing to back up yet.';bks.className='status';return}
@@ -281,6 +289,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
       if(!data||!Array.isArray(data.e)){qs.textContent='That backup code looks incomplete. Copy it again and paste the whole thing.';qs.className='status err';return}
       var have={},added=[];entries.forEach(function(e){have[e.id]=1});
       data.e.forEach(function(x){if(!Array.isArray(x))return;var e=clean({id:x[0],kind:x[1]==='d'?'down':'up',n:x[2],from:x[3],reason:x[4],date:x[5]});if(!have[e.id]){have[e.id]=1;entries.push(e);added.push(e.id)}});
+      try{if(data.s&&data.s.url&&!localStorage.getItem('sigpi-sheet')){localStorage.setItem('sigpi-sheet',JSON.stringify(data.s));gsShow()}}catch(err){}
       lastBatch=added;save();box.value='';fit();
       qs.innerHTML=esc(added.length?'Restored '+added.length+(added.length===1?' entry':' entries'):'Everything in that backup is already here')+(added.length?' <button type="button" class="x" id="undo">Undo</button>':'');
       qs.className='status';msg='';render();return;
@@ -334,7 +343,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     var y=t.closest('[data-y]');if(y){var id=y.getAttribute('data-y');entries=entries.filter(function(e){return e.id!==id});pendingDel=null;save();render()}
   });
 
-  var VER='10';
+  var VER='11';
   function checkUpdate(){
     if(!window.fetch)return;
     fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():''}).then(function(t){
@@ -350,34 +359,44 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   render();
   checkUpdate();
 
-  var GSK='sigpi-sheet-url',gsPending=null;
-  function gsGet(){try{return localStorage.getItem(GSK)||''}catch(e){return ''}}
-  function gsShow(){var u=gsGet();document.getElementById('gsSetup').hidden=!!u;document.getElementById('gsReady').hidden=!u;document.getElementById('gsChange').hidden=!u;document.getElementById('gsConfirm').hidden=true}
+  var GSK='sigpi-sheet',gsPending=null;
+  function gsCfg(){try{var o=JSON.parse(localStorage.getItem(GSK)||'null');return o&&o.url?o:null}catch(e){return null}}
+  function gsSet(o){try{if(o)localStorage.setItem(GSK,JSON.stringify(o));else localStorage.removeItem(GSK)}catch(e){}}
+  function gsShow(){var c=gsCfg();document.getElementById('gsSetup').hidden=!!c;document.getElementById('gsReady').hidden=!c;document.getElementById('gsChange').hidden=!c;document.getElementById('gsConfirm').hidden=true;
+    if(c)document.getElementById('gsWho').textContent='Updates the row for '+c.first+' '+c.last+'.'}
   function gsMsg(t,err){var el=document.getElementById('gss');el.textContent=t;el.className='status'+(err?' err':'')}
   function num(v){var x=parseFloat(String(v==null?'':v).replace(/,/g,''));return isFinite(x)?x:0}
   function totals(){var u=0,d=0;entries.forEach(function(e){if(e.kind==='up')u+=e.n;else d+=e.n});u=Math.round(u*1000)/1000;d=Math.round(d*1000)/1000;return {u:u,d:d,n:Math.round((u-d)*1000)/1000}}
-  function gsCall(params){var u=gsGet();var q=Object.keys(params).map(function(k){return k+'='+encodeURIComponent(params[k])}).join('&');
-    return fetch(u+(u.indexOf('?')>-1?'&':'?')+q+'&t='+Date.now(),{redirect:'follow'}).then(function(r){return r.json()}).then(function(j){if(!j||!j.ok)throw new Error((j&&j.error)||'The sheet didn’t answer.');return j})}
+  function gsCall(params){var c=gsCfg();params.first=c.first;params.last=c.last;if(c.token)params.token=c.token;
+    var q=Object.keys(params).map(function(k){return k+'='+encodeURIComponent(params[k])}).join('&');
+    return fetch(c.url+'?'+q+'&t='+Date.now(),{redirect:'follow'}).then(function(r){return r.json()}).then(function(j){if(!j||!j.ok)throw new Error((j&&j.error)||'The sheet didn’t answer.');return j})}
   document.getElementById('gsSave').addEventListener('click',function(){
-    var v=document.getElementById('gsUrl').value.trim();
-    if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(v)){gsMsg('That doesn’t look like the script link. It starts with https://script.google.com/macros/s/ and ends with /exec.',true);return}
-    try{localStorage.setItem(GSK,v)}catch(e){}
-    gsShow();gsMsg('Link saved.')
+    var first=document.getElementById('gsFirst').value.trim(),last=document.getElementById('gsLast').value.trim(),url=document.getElementById('gsUrl').value.trim();
+    if(!first||!last){gsMsg('Enter your first and last name exactly as they are in the sheet.',true);return}
+    if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)){gsMsg('That doesn’t look like the sheet link. It starts with https://script.google.com/macros/s/ and ends with /exec.',true);return}
+    var old=gsCfg(),same=old&&old.url===url&&old.first.toLowerCase()===first.toLowerCase()&&old.last.toLowerCase()===last.toLowerCase();
+    gsSet({first:first,last:last,url:url,token:same?old.token:(old&&old.token&&old.first.toLowerCase()===first.toLowerCase()&&old.last.toLowerCase()===last.toLowerCase()?old.token:'')});
+    gsShow();gsMsg('Checking the sheet for '+first+' '+last+'…');
+    gsCall({action:'get'}).then(function(j){gsMsg(j.claimedByOther?'Found your row, but it’s already linked to another phone. Ask the sheet owner to reset it.':'Found your row. You’re all set.',!!j.claimedByOther)}).catch(function(e){document.getElementById('gsChange').click();gsMsg(e.message,true)});
   });
-  document.getElementById('gsChange').addEventListener('click',function(){try{localStorage.removeItem(GSK)}catch(e){}document.getElementById('gsUrl').value='';gsShow();gsMsg('')});
+  document.getElementById('gsChange').addEventListener('click',function(){var c=gsCfg();if(c){document.getElementById('gsFirst').value=c.first;document.getElementById('gsLast').value=c.last;document.getElementById('gsUrl').value=c.url}
+    document.getElementById('gsSetup').hidden=false;document.getElementById('gsReady').hidden=true;document.getElementById('gsChange').hidden=true;document.getElementById('gsConfirm').hidden=true;gsMsg('')});
   document.getElementById('gsGo').addEventListener('click',function(){
     var t=totals();gsMsg('Checking the sheet…');document.getElementById('gsConfirm').hidden=true;
     gsCall({action:'get'}).then(function(j){
+      if(j.claimedByOther){gsMsg('Your row is linked to another phone, so this one can’t change it. Ask the sheet owner to reset it.',true);return}
       gsPending=t;
-      gsMsg('Sheet now: ▲'+f(num(j.ups))+' ups, ▼'+f(num(j.downs))+' downs, net '+f(num(j.net))+'. Change it to ▲'+f(t.u)+' ups, ▼'+f(t.d)+' downs, net '+f(t.n)+'?');
+      gsMsg((j.name?j.name+' — ':'')+'sheet now: ▲'+f(num(j.ups))+' ups, ▼'+f(num(j.downs))+' downs, net '+f(num(j.net))+'. Change it to ▲'+f(t.u)+' ups, ▼'+f(t.d)+' downs, net '+f(t.n)+'?');
       document.getElementById('gsConfirm').hidden=false;
     }).catch(function(e){gsMsg('Couldn’t reach the sheet: '+e.message,true)});
   });
   document.getElementById('gsNo').addEventListener('click',function(){gsPending=null;document.getElementById('gsConfirm').hidden=true;gsMsg('')});
   document.getElementById('gsYes').addEventListener('click',function(){
     if(!gsPending)return;var t=gsPending;gsPending=null;document.getElementById('gsConfirm').hidden=true;gsMsg('Updating…');
-    gsCall({action:'set',ups:t.u,downs:t.d}).then(function(j){gsMsg('Sheet updated: ▲'+f(num(j.ups))+' ups, ▼'+f(num(j.downs))+' downs, net '+f(num(j.net))+'.')}).catch(function(e){gsMsg('Couldn’t update the sheet: '+e.message,true)});
+    gsCall({action:'set',ups:t.u,downs:t.d}).then(function(j){var c=gsCfg();if(j.token&&c){c.token=j.token;gsSet(c)}
+      gsMsg('Sheet updated: ▲'+f(num(j.ups))+' ups, ▼'+f(num(j.downs))+' downs, net '+f(num(j.net))+'.')}).catch(function(e){gsMsg('Couldn’t update the sheet: '+e.message,true)});
   });
+  try{var oldUrl=localStorage.getItem('sigpi-sheet-url');if(oldUrl&&!gsCfg()){localStorage.removeItem('sigpi-sheet-url');document.getElementById('gsUrl').value=oldUrl}}catch(e){}
   gsShow();
 })();
 </script>
