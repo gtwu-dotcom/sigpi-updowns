@@ -51,6 +51,9 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
 .b-up,.b-down{font-weight:600;font-size:16px;padding:12px}
 .b-up{background:var(--up);color:var(--surface)}
 .b-down{background:var(--down);color:var(--surface)}
+.qrow{display:flex;gap:10px}
+.qrow input{flex:1;min-width:0}
+.b-q{background:var(--accent);color:var(--surface);font-weight:600;font-size:16px;padding:10px 18px}
 .status{font-size:13px;color:var(--muted);min-height:1em}
 .status.err{color:var(--down)}
 .tip{font-size:13px;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:10px 12px}
@@ -86,6 +89,12 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     <span class="eyebrow">Your total</span>
     <div id="tot"></div>
   </section>
+
+  <form class="card" id="q" autocomplete="off">
+    <h2>Quick add</h2>
+    <div class="qrow"><input id="qt" type="text" aria-label="Type what happened" placeholder="take 50 downs by 1s by Jack for a bad shirt design" maxlength="200"><button type="submit" class="b-q">Add</button></div>
+    <div class="status" id="qs" role="status">Say how many ups or downs, who from (“by Jack”), and why (“for …”).</div>
+  </form>
 
   <form class="card" id="f" autocomplete="off">
     <h2>Log a point</h2>
@@ -154,6 +163,34 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     document.getElementById('rs').value='';document.getElementById('fr').value='';document.getElementById('am').value='1';
     msg=(kind==='up'?'▲ ':'▼ ')+f(e.n)+' '+(kind==='up'?'up':'down')+' added.';msgErr=false;render();
   });
+
+  function cap(s){return s.replace(/\b\w/g,function(c){return c.toUpperCase()})}
+  function parse(text){
+    var s=' '+text.trim()+' ',reason='',from='',each=1;
+    var m=s.match(/\sfor\s+(.+)$/i);if(m){reason=m[1].trim();s=s.slice(0,m.index)+' '}
+    s=s.replace(/\s(?:by|in)\s+(\d+(?:\.\d+)?)s\b/i,function(_,x){each=parseFloat(x);return ' '});
+    m=s.match(/\s(?:by|from)\s+([a-z][\w.'’-]*(?:\s+[a-z][\w.'’-]*)?)\s*$/i)||s.match(/\s(?:by|from)\s+([a-z][\w.'’-]*)/i);
+    if(m){from=cap(m[1].trim());s=s.replace(m[0],' ')}
+    var kind=/\bdowns?\b/i.test(s)?'down':/\bups?\b/i.test(s)?'up':null;
+    var nm=s.match(/(\d+(?:\.\d+)?)/);
+    var words={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,a:1,an:1};
+    var n=nm?parseFloat(nm[1]):null;
+    if(n==null){var w=s.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|an?)\s+(?:ups?|downs?)\b/i);if(w)n=words[w[1].toLowerCase()]}
+    if(!kind)return {err:'Say whether it’s ups or downs.'};
+    if(!(n>0))return {err:'Say how many, like “50 downs”.'};
+    return {kind:kind,n:n*each,from:from,reason:reason};
+  }
+  document.getElementById('q').addEventListener('submit',function(ev){
+    ev.preventDefault();
+    var box=document.getElementById('qt'),qs=document.getElementById('qs'),r=parse(box.value);
+    if(!box.value.trim()){qs.textContent='Type what happened first.';qs.className='status err';return}
+    if(r.err){qs.textContent=r.err;qs.className='status err';return}
+    var e=clean({kind:r.kind,n:r.n,from:r.from,reason:r.reason,date:today()});
+    entries.push(e);save();box.value='';
+    qs.textContent=(e.kind==='up'?'▲ Added ':'▼ Added ')+f(e.n)+' '+(e.kind==='up'?'up':'down')+(e.n===1?'':'s')+(e.from?' from '+e.from:'')+(e.reason?' for '+e.reason:'')+'. Tap Remove below if that’s wrong.';
+    qs.className='status';msg='';render();
+  });
+  document.getElementById('qt').addEventListener('input',function(){var qs=document.getElementById('qs');if(qs.className.indexOf('err')>-1){qs.textContent='';qs.className='status'}});
 
   document.addEventListener('click',function(ev){
     var t=ev.target;
