@@ -57,12 +57,16 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
 .qrow textarea{flex:1;min-width:0;font:inherit;font-size:16px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;resize:none;max-height:260px;overflow-y:auto;line-height:1.4}
 .qrow textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .b-q{background:var(--accent);color:var(--surface);font-weight:600;font-size:16px;padding:10px 18px}
-.gs-btn{width:100%}
-.gs-setup{display:flex;flex-direction:column;gap:10px}
+.gs{gap:10px}
+.gs-bar{display:flex;gap:10px}
+.gs-btn{flex:1;min-width:0}
+.gs-gear{flex:0 0 48px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.gs-gear[aria-expanded="true"]{background:var(--accent);color:var(--surface)}
+.gs-who{font-size:13px;color:var(--muted)}
+.gs .status:empty{display:none}
+.gs-setup{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:12px}
 .gs-setup>label.f{flex:none}
-.gs-who{font-size:13px;color:var(--muted);margin-bottom:8px}
-.gs-confirm{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.gs-change{align-self:flex-start;padding:2px 0}
+.gs-confirm,.gs-setup-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .b-copy{width:100%;padding:12px;font-weight:600;font-size:15px;background:var(--surface);border:1px solid var(--line);color:var(--fg)}
 .bkt{width:100%;min-height:90px;font:12px var(--mono);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px}
 .status{font-size:13px;color:var(--muted);min-height:1em}
@@ -104,6 +108,26 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     <div class="sub">Your own log, saved on this phone. Nobody else sees it.</div>
   </header>
 
+  <section class="card gs" id="gs">
+    <div class="gs-bar">
+      <button type="button" class="b-q gs-btn" id="gsGo">Update</button>
+      <button type="button" class="gs-gear" id="gsToggle" aria-expanded="false" aria-controls="gsSetup" aria-label="Name and sheet link"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    </div>
+    <div class="gs-who" id="gsWho"></div>
+    <div class="status" id="gss" role="status"></div>
+    <div class="gs-confirm" id="gsConfirm" hidden>
+      <button type="button" class="ef-save" id="gsYes">Update sheet</button><button type="button" class="ef-cancel" id="gsNo">Cancel</button>
+    </div>
+    <div id="gsSetup" class="gs-setup" hidden>
+      <div class="row">
+        <label class="f" for="gsFirst">First name<input id="gsFirst" type="text" autocomplete="given-name" maxlength="40"></label>
+        <label class="f" for="gsLast">Last name<input id="gsLast" type="text" autocomplete="family-name" maxlength="40"></label>
+      </div>
+      <label class="f" for="gsUrl">Sheet link (already filled in)<input id="gsUrl" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
+      <div class="gs-setup-btns"><button type="button" class="ef-save" id="gsSave">Save</button><button type="button" class="ef-cancel" id="gsCancel">Cancel</button></div>
+    </div>
+  </section>
+
   <section class="card total" aria-live="polite">
     <span class="eyebrow">Your total</span>
     <div id="tot"></div>
@@ -139,26 +163,6 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     <textarea id="bkt" class="bkt" readonly hidden aria-label="Backup code"></textarea>
   </section>
 
-  <section class="card" id="gs">
-    <h2>Google Sheet</h2>
-    <div id="gsSetup" class="gs-setup">
-      <div class="row">
-        <label class="f" for="gsFirst">First name<input id="gsFirst" type="text" autocomplete="given-name" maxlength="40"></label>
-        <label class="f" for="gsLast">Last name<input id="gsLast" type="text" autocomplete="family-name" maxlength="40"></label>
-      </div>
-      <label class="f" for="gsUrl">Sheet link (already filled in)<input id="gsUrl" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
-      <button type="button" class="b-copy" id="gsSave">Save</button>
-    </div>
-    <div id="gsReady" hidden>
-      <div class="gs-who" id="gsWho"></div>
-      <button type="button" class="b-q gs-btn" id="gsGo">Update Google Sheet</button>
-    </div>
-    <div class="status" id="gss" role="status"></div>
-    <div class="gs-confirm" id="gsConfirm" hidden>
-      <button type="button" class="ef-save" id="gsYes">Update sheet</button><button type="button" class="ef-cancel" id="gsNo">Cancel</button>
-    </div>
-    <button type="button" class="x gs-change" id="gsChange" hidden>Change name or link</button>
-  </section>
 </div>
 
 <script>
@@ -359,11 +363,19 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   render();
   checkUpdate();
 
-  var GSK='sigpi-sheet',gsPending=null,GS_DEFAULT='https://script.google.com/a/macros/scu.edu/s/AKfycbyJRta6ugHgfDqV9VOw160CAExHAhGXyKVmJnWezfeWidgkbzzPQ1vyjCKsCtjs-TifBA/exec';
+  var GSK='sigpi-sheet',gsPending=null,GS_DEFAULT='https://script.google.com/macros/s/AKfycbxxFpEDTbtUdtQfklGG4VolYnxNr7y2QXFsjiSD2NFkWaxzLB5P95lpPRfgWUJs8dsCjA/exec';
+  var GS_OLD=['https://script.google.com/a/macros/scu.edu/s/AKfycbyJRta6ugHgfDqV9VOw160CAExHAhGXyKVmJnWezfeWidgkbzzPQ1vyjCKsCtjs-TifBA/exec'];
   function gsCfg(){try{var o=JSON.parse(localStorage.getItem(GSK)||'null');return o&&o.url?o:null}catch(e){return null}}
   function gsSet(o){try{if(o)localStorage.setItem(GSK,JSON.stringify(o));else localStorage.removeItem(GSK)}catch(e){}}
-  function gsShow(){var c=gsCfg();document.getElementById('gsSetup').hidden=!!c;document.getElementById('gsReady').hidden=!c;document.getElementById('gsChange').hidden=!c;document.getElementById('gsConfirm').hidden=true;
-    if(c)document.getElementById('gsWho').textContent='Updates the row for '+c.first+' '+c.last+'.'}
+  // Phones still saved with the old built-in link move to the new one (the old token belonged to the old script).
+  (function(){var c=gsCfg();if(c&&GS_OLD.indexOf(c.url)>=0){c.url=GS_DEFAULT;c.token='';gsSet(c)}})();
+  function gsOpen(open){var c=gsCfg(),s=document.getElementById('gsSetup');
+    if(open){document.getElementById('gsFirst').value=c?c.first:document.getElementById('gsFirst').value;document.getElementById('gsLast').value=c?c.last:document.getElementById('gsLast').value;document.getElementById('gsUrl').value=(c&&c.url)||GS_DEFAULT;document.getElementById('gsConfirm').hidden=true;gsPending=null}
+    s.hidden=!open;document.getElementById('gsToggle').setAttribute('aria-expanded',open?'true':'false');
+    document.getElementById('gsCancel').hidden=!c}
+  function gsShow(){var c=gsCfg();document.getElementById('gsConfirm').hidden=true;
+    document.getElementById('gsWho').textContent=c?'Updates the Google Sheet row for '+c.first+' '+c.last+'.':'Tap ⚙ to add your name before updating the Google Sheet.';
+    gsOpen(!c)}
   function gsMsg(t,err){var el=document.getElementById('gss');el.textContent=t;el.className='status'+(err?' err':'')}
   function num(v){var x=parseFloat(String(v==null?'':v).replace(/,/g,''));return isFinite(x)?x:0}
   function totals(){var u=0,d=0;entries.forEach(function(e){if(e.kind==='up')u+=e.n;else d+=e.n});u=Math.round(u*1000)/1000;d=Math.round(d*1000)/1000;return {u:u,d:d,n:Math.round((u-d)*1000)/1000}}
@@ -377,11 +389,13 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     var old=gsCfg(),same=old&&old.url===url&&old.first.toLowerCase()===first.toLowerCase()&&old.last.toLowerCase()===last.toLowerCase();
     gsSet({first:first,last:last,url:url,token:same?old.token:(old&&old.token&&old.first.toLowerCase()===first.toLowerCase()&&old.last.toLowerCase()===last.toLowerCase()?old.token:'')});
     gsShow();gsMsg('Checking the sheet for '+first+' '+last+'…');
-    gsCall({action:'get'}).then(function(j){gsMsg(j.claimedByOther?'Found your row, but it’s already linked to another phone. Ask the sheet owner to reset it.':'Found your row. You’re all set.',!!j.claimedByOther)}).catch(function(e){document.getElementById('gsChange').click();gsMsg(e.message,true)});
+    gsCall({action:'get'}).then(function(j){gsMsg(j.claimedByOther?'Found your row, but it’s already linked to another phone. Ask the sheet owner to reset it.':'Found your row. You’re all set.',!!j.claimedByOther)}).catch(function(e){gsOpen(true);gsMsg(e.message,true)});
   });
-  document.getElementById('gsChange').addEventListener('click',function(){var c=gsCfg();if(c){document.getElementById('gsFirst').value=c.first;document.getElementById('gsLast').value=c.last;document.getElementById('gsUrl').value=c.url||GS_DEFAULT}
-    document.getElementById('gsSetup').hidden=false;document.getElementById('gsReady').hidden=true;document.getElementById('gsChange').hidden=true;document.getElementById('gsConfirm').hidden=true;gsMsg('')});
+  document.getElementById('gsToggle').addEventListener('click',function(){gsOpen(document.getElementById('gsSetup').hidden);gsMsg('')});
+  document.getElementById('gsCancel').addEventListener('click',function(){gsOpen(false);gsMsg('')});
   document.getElementById('gsGo').addEventListener('click',function(){
+    if(!gsCfg()){gsOpen(true);gsMsg('Add your first and last name first, then tap Save.',true);document.getElementById('gsFirst').focus();return}
+    gsOpen(false);
     var t=totals();gsMsg('Checking the sheet…');document.getElementById('gsConfirm').hidden=true;
     gsCall({action:'get'}).then(function(j){
       if(j.claimedByOther){gsMsg('Your row is linked to another phone, so this one can’t change it. Ask the sheet owner to reset it.',true);return}
