@@ -118,7 +118,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
 <script>
 (function(){
   var LS='sigpi-my-updowns-v1';
-  var entries=[],pendingDel=null,confirmClear=false,msg='',msgErr=false,lastKind='up',storageOk=true;
+  var lastBatch=[],entries=[],pendingDel=null,confirmClear=false,msg='',msgErr=false,lastKind='up',storageOk=true;
 
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function f(x){return String(Math.round(x*100)/100)}
@@ -178,22 +178,27 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     if(n==null){var w=s.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|an?)\s+(?:ups?|downs?)\b/i);if(w)n=words[w[1].toLowerCase()]}
     if(!kind)return {err:'Say whether it’s ups or downs.'};
     if(!(n>0))return {err:'Say how many, like “50 downs”.'};
-    return {kind:kind,n:n*each,from:from,reason:reason};
+    return {kind:kind,n:n,chunk:each,from:from,reason:reason};
   }
   document.getElementById('q').addEventListener('submit',function(ev){
     ev.preventDefault();
     var box=document.getElementById('qt'),qs=document.getElementById('qs'),r=parse(box.value);
     if(!box.value.trim()){qs.textContent='Type what happened first.';qs.className='status err';return}
     if(r.err){qs.textContent=r.err;qs.className='status err';return}
-    var e=clean({kind:r.kind,n:r.n,from:r.from,reason:r.reason,date:today()});
-    entries.push(e);save();box.value='';
-    qs.textContent=(e.kind==='up'?'▲ Added ':'▼ Added ')+f(e.n)+' '+(e.kind==='up'?'up':'down')+(e.n===1?'':'s')+(e.from?' from '+e.from:'')+(e.reason?' for '+e.reason:'')+'. Tap Remove below if that’s wrong.';
+    var chunk=r.chunk>0?r.chunk:1,count=Math.ceil(r.n/chunk-1e-9);
+    if(count>500){qs.textContent='That’s over 500 separate entries. Use a bigger step, like “by 5s”.';qs.className='status err';return}
+    var left=r.n,batch=[];
+    for(var i=0;i<count;i++){var amt=Math.min(chunk,Math.round(left*100)/100);left-=amt;var e=clean({kind:r.kind,n:amt,from:r.from,reason:r.reason,date:today()});entries.push(e);batch.push(e.id)}
+    lastBatch=batch;save();box.value='';
+    var word=r.kind==='up'?'up':'down';
+    qs.innerHTML=esc((r.kind==='up'?'▲ Added ':'▼ Added ')+f(r.n)+' '+word+(r.n===1?'':'s')+(count>1?', '+f(chunk)+' at a time ('+count+' entries)':'')+(r.from?' from '+r.from:'')+(r.reason?' for '+r.reason:'')+'.')+' <button type="button" class="x" id="undo">Undo</button>';
     qs.className='status';msg='';render();
   });
   document.getElementById('qt').addEventListener('input',function(){var qs=document.getElementById('qs');if(qs.className.indexOf('err')>-1){qs.textContent='';qs.className='status'}});
 
   document.addEventListener('click',function(ev){
     var t=ev.target;
+    if(t.closest('#undo')){var ids=lastBatch;entries=entries.filter(function(e){return ids.indexOf(e.id)<0});lastBatch=[];save();var q=document.getElementById('qs');q.textContent='Undone.';q.className='status';render();return}
     if(t.closest('#clr')){confirmClear=true;render();return}
     if(t.closest('#clrN')){confirmClear=false;render();return}
     if(t.closest('#clrY')){entries=[];confirmClear=false;save();msg='Log cleared.';msgErr=false;render();return}
