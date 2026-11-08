@@ -191,14 +191,14 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     for(var i=0;i<count;i++){var amt=Math.min(chunk,Math.round(left*100)/100);left-=amt;var e=clean({kind:r.kind,n:amt,from:r.from,reason:r.reason,date:today()});entries.push(e);batch.push(e.id)}
     lastBatch=batch;save();box.value='';
     var word=r.kind==='up'?'up':'down';
-    qs.innerHTML=esc((r.kind==='up'?'▲ Added ':'▼ Added ')+f(r.n)+' '+word+(r.n===1?'':'s')+(count>1?', '+f(chunk)+' at a time ('+count+' entries)':'')+(r.from?' from '+r.from:'')+(r.reason?' for '+r.reason:'')+'.')+' <button type="button" class="x" id="undo">Undo</button>';
+    qs.innerHTML=esc((r.kind==='up'?'▲ ':'▼ ')+f(r.n)+' '+word+(r.n===1?'':'s')+' added')+' <button type="button" class="x" id="undo">Undo</button>';
     qs.className='status';msg='';render();
   });
   document.getElementById('qt').addEventListener('input',function(){var qs=document.getElementById('qs');if(qs.className.indexOf('err')>-1){qs.textContent='';qs.className='status'}});
 
   document.addEventListener('click',function(ev){
     var t=ev.target;
-    if(t.closest('#undo')){var ids=lastBatch;entries=entries.filter(function(e){return ids.indexOf(e.id)<0});lastBatch=[];save();var q=document.getElementById('qs');q.textContent='Undone.';q.className='status';render();return}
+    if(t.closest('#undo')){var ids=lastBatch;entries=entries.filter(function(e){return ids.indexOf(e.id)<0});lastBatch=[];save();var q=document.getElementById('qs');q.textContent='';q.className='status';render();return}
     if(t.closest('#clr')){confirmClear=true;render();return}
     if(t.closest('#clrN')){confirmClear=false;render();return}
     if(t.closest('#clrY')){entries=[];confirmClear=false;save();msg='Log cleared.';msgErr=false;render();return}
