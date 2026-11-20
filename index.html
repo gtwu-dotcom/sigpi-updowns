@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>My Ups &amp; Downs</title>
+<title>My Attaboys &amp; Aw Shits</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Ups &amp; Downs">
+<meta name="apple-mobile-web-app-title" content="Attaboys">
 <meta name="theme-color" content="#5b3fa8">
-<meta name="app-version" content="13">
+<meta name="app-version" content="14">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235b3fa8'/%3E%3Cpath d='M20 38l12-16 12 16z' fill='white'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
@@ -75,7 +75,22 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
 .sec{display:flex;flex-direction:column;gap:10px}
 .sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
 .list{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
-.e{display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;padding:12px 14px;border-top:1px solid var(--line);align-items:start}
+.e{display:grid;grid-template-columns:1fr auto;gap:4px 6px;padding:11px 8px 11px 14px;border-top:1px solid var(--line);align-items:center}
+.e.u{box-shadow:inset 3px 0 var(--up)}.e.d{box-shadow:inset 3px 0 var(--down)}
+.ln{font-size:14.5px;font-weight:500;white-space:pre-wrap;overflow-wrap:anywhere;min-width:0}
+.ln .dt{white-space:nowrap;font-variant-numeric:tabular-nums}
+.pg-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.pg-nav{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:13px;font-weight:700}
+.pg-nav:empty{display:none}
+.pg-b{background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:20px;line-height:1;width:42px;height:38px}
+.pg-b:disabled{opacity:.35;cursor:default}
+.pp{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--muted)}
+.pp input{width:68px;padding:7px 9px}
+.pt{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 14px;border-top:2px solid var(--line);background:var(--bg)}
+.pt div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pt span{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.pt b{font-family:var(--mono);font-size:17px;font-variant-numeric:tabular-nums}
+.pt b.u{color:var(--up)}.pt b.d{color:var(--down)}
 .e:first-child{border-top:0}
 .meta{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;min-width:0}
 .date{font-family:var(--mono);font-size:12px;color:var(--muted);padding-top:2px}
@@ -104,7 +119,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
 <div class="wrap">
   <header>
     <div class="eyebrow">ΣΠ · Pledge ledger</div>
-    <h1>My Ups &amp; Downs</h1>
+    <h1>My Attaboys &amp; Aw Shits</h1>
     <div class="sub">Your own log, saved on this phone. Nobody else sees it.</div>
   </header>
 
@@ -143,17 +158,18 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     <h2>Log a point</h2>
     <div class="row">
       <label class="f amt" for="am">Points<input id="am" type="number" inputmode="decimal" min="0.01" max="999" step="any" value="1" required></label>
-      <label class="f" for="fr">From<input id="fr" type="text" placeholder="Who gave it (optional)" maxlength="40"></label>
+      <label class="f" for="fr">From brother<input id="fr" type="text" placeholder="Name or initials, e.g. GW" maxlength="40"></label>
     </div>
     <label class="f" for="rs">Reason<input id="rs" type="text" placeholder="e.g. Cleaned the kitchen" maxlength="120"></label>
-    <div class="btns"><button type="submit" class="b-up" data-k="up">▲ Add up</button><button type="submit" class="b-down" data-k="down">▼ Add down</button></div>
+    <div class="btns"><button type="submit" class="b-up" data-k="up">▲ Add Attaboy</button><button type="submit" class="b-down" data-k="down">▼ Add Aw Shit</button></div>
     <div class="status" id="st" role="status"></div>
   </form>
 
   <div class="tip">Tip: tap Share → <b>Add to Home Screen</b> so it opens like an app. Always use the same phone and browser, since your log is saved there.</div>
 
   <section class="sec">
-    <div class="sec-head"><h2>Your log</h2><span id="tools"></span></div>
+    <div class="sec-head"><h2>Your pages</h2><span id="tools"></span></div>
+    <div class="pg-bar"><div class="pg-nav" id="pgnav"></div><label class="pp" for="pp">Lines per page<input id="pp" type="number" inputmode="numeric" min="5" max="60" step="1"></label></div>
     <div class="list" id="log"></div>
   </section>
 
@@ -169,6 +185,22 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
 (function(){
   var LS='sigpi-my-updowns-v1';
   var editingId=null,lastBatch=[],entries=[],pendingDel=null,confirmClear=false,msg='',msgErr=false,lastKind='up',storageOk=true;
+  // What the two kinds are called on screen. Stored data and the sheet still use up/down.
+  var A1='Attaboy',A2='Attaboys',D1='Aw Shit',D2='Aw Shits';
+  // Pages for copying into a notebook: oldest entries first, so pages you've already copied don't change.
+  // page = -1 means "show the last page" (where new entries land).
+  var PPK='sigpi-perpage',perPage=20,page=-1,curPage=0,pageCount=0;
+  try{var ppv=parseInt(localStorage.getItem(PPK),10);if(ppv>=5&&ppv<=60)perPage=ppv}catch(e){}
+  function nm(kind,n){return kind==='up'?(n===1?A1:A2):(n===1?D1:D2)}
+  function md(iso){var p=String(iso).split('-');return p.length===3?(+p[1])+'-'+(+p[2]):''}
+  function initials(s){
+    s=String(s||'').trim().replace(/^(?:brother|bro|br)\.?\s+/i,'');
+    if(!s)return '';
+    if(/^[A-Z]{1,4}$/.test(s))return s;
+    return s.split(/[\s\-]+/).map(function(w){var m=w.match(/[a-z0-9]/i);return m?m[0]:''}).join('').toUpperCase().slice(0,4);
+  }
+  // e.g. "+1 Attaboy from Brother GW    (11-19)" — four spaces, then the date, which never splits across lines
+  function lineHtml(e){return esc('+'+f(e.n)+' '+nm(e.kind,e.n)+' from Brother '+(initials(e.from)||'??'))+'    <span class="dt">('+esc(md(e.date))+')</span>'}
 
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function f(x){return String(Math.round(x*100)/100)}
@@ -187,25 +219,37 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   function render(){
     var u=0,d=0;entries.forEach(function(e){if(e.kind==='up')u+=e.n;else d+=e.n});var net=u-d;
     document.getElementById('tot').innerHTML=entries.length?
-      '<div class="t-body"><span class="big '+(net>0?'pos':net<0?'neg':'')+'">'+(net>0?'+':'')+f(net)+'</span><div class="t-meta"><span class="u">▲'+f(u)+' ups</span><span class="d">▼'+f(d)+' downs</span><span>'+entries.length+(entries.length===1?' entry':' entries')+'</span></div></div>':
-      '<div class="t-body"><span class="big">0</span><div class="t-meta"><span>Fresh start. Log your first up or down below.</span></div></div>';
+      '<div class="t-body"><span class="big '+(net>0?'pos':net<0?'neg':'')+'">'+(net>0?'+':'')+f(net)+'</span><div class="t-meta"><span class="u">▲'+f(u)+' '+nm('up',u)+'</span><span class="d">▼'+f(d)+' '+nm('down',d)+'</span><span>'+entries.length+(entries.length===1?' entry':' entries')+'</span></div></div>':
+      '<div class="t-body"><span class="big">0</span><div class="t-meta"><span>Fresh start. Log your first '+A1+' or '+D1+' below.</span></div></div>';
     var st=document.getElementById('st');
     if(!storageOk){st.textContent='This browser isn’t saving data (private mode?). Your log will disappear when you close it.';st.className='status err'}
     else{st.textContent=msg;st.className='status'+(msgErr?' err':'')}
     document.getElementById('tools').innerHTML=entries.length?(confirmClear?'<span class="confirm">Delete your whole log? <button type="button" class="yes" id="clrY">Delete</button><button type="button" class="no" id="clrN">Keep</button></span>':'<button type="button" class="x" id="clr">Start over</button>'):'';
-    var list=entries.map(function(e,i){return [e,i]}).sort(function(a,b){return a[0].date<b[0].date?1:a[0].date>b[0].date?-1:b[1]-a[1]});
-    document.getElementById('log').innerHTML=list.length?list.map(function(p){
+    var list=entries.map(function(e,i){return [e,i]}).sort(function(a,b){return a[0].date<b[0].date?-1:a[0].date>b[0].date?1:a[1]-b[1]});
+    var pages=[];for(var i=0;i<list.length;i+=perPage)pages.push(list.slice(i,i+perPage));
+    pageCount=pages.length;
+    curPage=pages.length?(page<0?pages.length-1:Math.min(page,pages.length-1)):0;
+    document.getElementById('pgnav').innerHTML=pages.length?
+      '<button type="button" class="pg-b" data-pg="-1"'+(curPage<=0?' disabled':'')+' aria-label="Previous page">‹</button>'+
+      '<span>Page '+(curPage+1)+' of '+pages.length+'</span>'+
+      '<button type="button" class="pg-b" data-pg="1"'+(curPage>=pages.length-1?' disabled':'')+' aria-label="Next page">›</button>':'';
+    var pg=pages[curPage]||[],pu=0,pd=0;
+    pg.forEach(function(p){if(p[0].kind==='up')pu+=p[0].n;else pd+=p[0].n});
+    var pnet=pu-pd;
+    document.getElementById('log').innerHTML=pg.length?pg.map(function(p){
       var e=p[0],up=e.kind==='up';
-      var tail=pendingDel===e.id?'<span class="confirm">Remove? <button type="button" class="yes" data-y="'+esc(e.id)+'">Yes</button><button type="button" class="no" data-n>No</button></span>':'<span class="acts"><button type="button" class="x" data-ed="'+esc(e.id)+'">Edit</button><button type="button" class="x" data-d="'+esc(e.id)+'" aria-label="Remove entry">Remove</button></span>';
+      var tail=pendingDel===e.id?'<span class="confirm">Remove? <button type="button" class="yes" data-y="'+esc(e.id)+'">Yes</button><button type="button" class="no" data-n>No</button></span>':'<span class="acts"><button type="button" class="x" data-ed="'+esc(e.id)+'">Edit</button><button type="button" class="x" data-d="'+esc(e.id)+'" aria-label="Remove entry">✕</button></span>';
       if(editingId===e.id){var k=esc(e.id);return '<form class="e ef" data-ef="'+k+'" autocomplete="off">'+
         '<div class="ef-row"><label class="f amt">Points<input name="n" type="number" inputmode="decimal" min="0.01" max="999" step="any" required value="'+f(e.n)+'"></label>'+
-        '<label class="f amt">Type<select name="kind"><option value="up"'+(up?' selected':'')+'>Up</option><option value="down"'+(up?'':' selected')+'>Down</option></select></label>'+
+        '<label class="f amt">Type<select name="kind"><option value="up"'+(up?' selected':'')+'>'+A1+'</option><option value="down"'+(up?'':' selected')+'>'+D1+'</option></select></label>'+
         '<label class="f">Date<input name="date" type="date" required value="'+esc(e.date)+'"></label></div>'+
-        '<label class="f">From<input name="from" type="text" maxlength="40" value="'+esc(e.from)+'" placeholder="Who gave it"></label>'+
+        '<label class="f">From brother<input name="from" type="text" maxlength="40" value="'+esc(e.from)+'" placeholder="Name or initials, e.g. GW"></label>'+
         '<label class="f">Reason<input name="reason" type="text" maxlength="120" value="'+esc(e.reason)+'" placeholder="Why"></label>'+
         '<div class="ef-btns"><button type="submit" class="ef-save">Save</button><button type="button" class="ef-cancel" data-ec>Cancel</button></div></form>'}
-      return '<div class="e"><span class="date">'+fmtDate(e.date)+'</span><span class="meta"><span class="amtc '+(up?'u':'d')+'">'+(up?'+':'−')+f(e.n)+(up?' up':' down')+'</span>'+(e.from?'<span class="from">'+esc(e.from)+'</span>':'')+'</span>'+tail+'<span class="why">'+esc(e.reason)+'</span></div>';
-    }).join(''):'<div class="empty">Nothing logged yet.</div>';
+      return '<div class="e '+(up?'u':'d')+'"><span class="ln">'+lineHtml(e)+'</span>'+tail+'</div>';
+    }).join('')+
+      '<div class="pt"><div><span>'+A2+'</span><b class="u">'+f(pu)+'</b></div><div><span>Net</span><b>'+(pnet>0?'+':'')+f(pnet)+'</b></div><div><span>'+D2+'</span><b class="d">'+f(pd)+'</b></div></div>'
+      :'<div class="empty">Nothing logged yet.</div>';
   }
 
   var form=document.getElementById('f');
@@ -216,9 +260,9 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     var n=parseFloat(document.getElementById('am').value);
     if(!(n>0)){msg='Enter a points amount above 0.';msgErr=true;render();return}
     var e=clean({kind:kind,n:n,from:document.getElementById('fr').value,reason:document.getElementById('rs').value,date:today()});
-    entries.push(e);save();
+    entries.push(e);save();page=-1;
     document.getElementById('rs').value='';document.getElementById('fr').value='';document.getElementById('am').value='1';
-    msg=(kind==='up'?'▲ ':'▼ ')+f(e.n)+' '+(kind==='up'?'up':'down')+' added.';msgErr=false;render();
+    msg=(kind==='up'?'▲ ':'▼ ')+f(e.n)+' '+nm(kind,e.n)+' added.';msgErr=false;render();
   });
 
   var BK='updowns-backup:';
@@ -234,6 +278,8 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   function parse(text,ctx){
     ctx=ctx||{};
     var s=' '+String(text).replace(/[−–—]/g,'-').replace(/\s+/g,' ').trim()+' ';
+    // Attaboys count as ups and Aw/Oh Shits as downs, so the rest of the parser works unchanged.
+    s=s.replace(/\batta[\s-]?boy(?:['’]?s)?\b/ig,' ups ').replace(/\b(?:oh|aw|awe|ah)[\s-]*sh[i!*1]ts?\b/ig,' downs ').replace(/\s+/g,' ');
     s=s.replace(/^\s*(?:[-•*·>~]+|\d+[.)](?=\s.*\d))\s*/,' ');
     var reason='',from='',each=0,date=ctx.date||today(),hasDate=false;
     var MON={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
@@ -246,6 +292,8 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     }
     var dm=s.match(/[\s(\[](\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?(?=[\s,.:;)\]-])/);
     if(dm){var dd=mkDate(dm[1],dm[2],dm[3]);if(dd){date=dd;hasDate=true;s=s.replace(dm[0],' ')}}
+    if(!hasDate){dm=s.match(/[(\[](\d{1,2})-(\d{1,2})(?:-(\d{2}|\d{4}))?[)\]]/);
+      if(dm){var dd3=mkDate(dm[1],dm[2],dm[3]);if(dd3){date=dd3;hasDate=true;s=s.replace(dm[0],' ')}}}
     if(!hasDate){dm=s.match(/[\s(\[](jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?(?=[\s,.:;)\]-])/i);
       if(dm){var dd2=mkDate(MON[dm[1].slice(0,3).toLowerCase()],dm[2],dm[3]);if(dd2){date=dd2;hasDate=true;s=s.replace(dm[0],' ')}}}
     var bare=s.replace(/\b(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)(day|sday|nesday|rsday|urday)?\b/ig,' ').replace(/[^a-z0-9]+/ig,' ').trim();
@@ -273,7 +321,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
       if(/\b(lose|loses|lost|losing|minus|deduct|deducted|dock|docked|penalty|subtract|take away|taken away|negative)\b/i.test(text))kind='down';
       else if(reason||from||/\b(take|takes|took|taking|get|gets|got|give|gives|gave|giving|receive|received|add|plus|everyone|everybody|y'?all|all of you|pc|pledges?)\b/i.test(text)||/(^|\s)\+\d/.test(text))kind='up';
     }
-    if(!kind)return {err:'No up or down in this line.'};
+    if(!kind)return {err:'No '+A1+' or '+D1+' in this line.'};
     if(!(n>0))return {err:'No amount in this line.'};
     if(n>999)return {err:'Over 999 in one line.'};
     if(!from||!reason){
@@ -294,7 +342,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
       var have={},added=[];entries.forEach(function(e){have[e.id]=1});
       data.e.forEach(function(x){if(!Array.isArray(x))return;var e=clean({id:x[0],kind:x[1]==='d'?'down':'up',n:x[2],from:x[3],reason:x[4],date:x[5]});if(!have[e.id]){have[e.id]=1;entries.push(e);added.push(e.id)}});
       try{if(data.s&&data.s.url&&!localStorage.getItem('sigpi-sheet')){localStorage.setItem('sigpi-sheet',JSON.stringify(data.s));gsShow()}}catch(err){}
-      lastBatch=added;save();box.value='';fit();
+      lastBatch=added;save();page=-1;box.value='';fit();
       qs.innerHTML=esc(added.length?'Restored '+added.length+(added.length===1?' entry':' entries'):'Everything in that backup is already here')+(added.length?' <button type="button" class="x" id="undo">Undo</button>':'');
       qs.className='status';msg='';render();return;
     }
@@ -302,7 +350,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     if(!lines.length){qs.textContent='Type what happened first.';qs.className='status err';return}
     var parsed=[],bad=[];
     var ctx={},skipped=0;lines.forEach(function(l){var r=parse(l,ctx);if(r.header==='date'){ctx.date=r.date;return}if(r.header==='kind'){ctx.kind=r.kind;return}if(r.skip||(r.err&&!/\d/.test(l))){skipped++;return}if(r.err)bad.push({line:l,err:r.err});else parsed.push(r)});
-    if(!parsed.length&&!bad.length){qs.textContent=skipped?'No ups or downs found in that.':'Nothing to add in that.';qs.className='status err';return}
+    if(!parsed.length&&!bad.length){qs.textContent=skipped?'No '+A2+' or '+D2+' found in that.':'Nothing to add in that.';qs.className='status err';return}
     if(lines.length===1&&bad.length){qs.textContent=bad[0].err;qs.className='status err';return}
     var total=0;parsed.forEach(function(r){total+=Math.ceil(r.n/(r.chunk>0?r.chunk:r.n)-1e-9)});
     if(total>50000){qs.textContent='That’s over 50,000 separate entries. Paste it in smaller pieces.';qs.className='status err';return}
@@ -312,9 +360,9 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
       for(var i=0;i<count;i++){var amt=Math.min(chunk,Math.round(left*100)/100);left-=amt;var e=clean({kind:r.kind,n:amt,from:r.from,reason:r.reason,date:r.date});entries.push(e);batch.push(e.id)}
       if(r.kind==='up')ups+=r.n;else downs+=r.n;
     });
-    lastBatch=batch;if(batch.length)save();
+    lastBatch=batch;if(batch.length){save();page=-1}
     box.value=bad.map(function(b){return b.line}).join('\n');fit();
-    var parts=[];if(ups)parts.push('▲ '+f(ups)+' up'+(ups===1?'':'s'));if(downs)parts.push('▼ '+f(downs)+' down'+(downs===1?'':'s'));
+    var parts=[];if(ups)parts.push('▲ '+f(ups)+' '+nm('up',ups));if(downs)parts.push('▼ '+f(downs)+' '+nm('down',downs));
     var txt=parts.length?parts.join(', ')+' added'+(batch.length>1?' ('+batch.length+' entries)':''):'';
     if(bad.length)txt+=(txt?'. ':'')+bad.length+(bad.length===1?' line':' lines')+' couldn’t be read (left in the box to fix)';
     qs.innerHTML=esc(txt)+(batch.length?' <button type="button" class="x" id="undo">Undo</button>':'');
@@ -336,6 +384,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
 
   document.addEventListener('click',function(ev){
     var t=ev.target;
+    var pb=t.closest('[data-pg]');if(pb){if(pb.disabled)return;var nx=curPage+parseInt(pb.getAttribute('data-pg'),10);page=nx>=pageCount-1?-1:Math.max(0,nx);editingId=null;pendingDel=null;render();return}
     if(t.closest('#undo')){var ids=lastBatch;entries=entries.filter(function(e){return ids.indexOf(e.id)<0});lastBatch=[];save();var q=document.getElementById('qs');q.textContent='';q.className='status';render();return}
     if(t.closest('#clr')){confirmClear=true;render();return}
     if(t.closest('#clrN')){confirmClear=false;render();return}
@@ -347,7 +396,15 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     var y=t.closest('[data-y]');if(y){var id=y.getAttribute('data-y');entries=entries.filter(function(e){return e.id!==id});pendingDel=null;save();render()}
   });
 
-  var VER='13';
+  var ppEl=document.getElementById('pp');ppEl.value=perPage;
+  ppEl.addEventListener('change',function(){
+    var v=parseInt(ppEl.value,10);
+    if(!(v>=5&&v<=60)){ppEl.value=perPage;return}
+    perPage=v;ppEl.value=v;try{localStorage.setItem(PPK,String(v))}catch(e){}
+    page=-1;editingId=null;pendingDel=null;render();
+  });
+
+  var VER='14';
   function checkUpdate(){
     if(!window.fetch)return;
     fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():''}).then(function(t){
@@ -400,7 +457,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     gsCall({action:'get'}).then(function(j){
       if(j.claimedByOther){gsMsg('Your row is linked to another phone, so this one can’t change it. Ask the sheet owner to reset it.',true);return}
       gsPending=t;
-      gsMsg((j.name?j.name+' — ':'')+'sheet now: ▲'+f(num(j.ups))+' ups, ▼'+f(num(j.downs))+' downs, net '+f(num(j.net))+'. Change it to ▲'+f(t.u)+' ups, ▼'+f(t.d)+' downs, net '+f(t.n)+'?');
+      gsMsg((j.name?j.name+' — ':'')+'sheet now: ▲'+f(num(j.ups))+' '+A2+', ▼'+f(num(j.downs))+' '+D2+', net '+f(num(j.net))+'. Change it to ▲'+f(t.u)+' '+A2+', ▼'+f(t.d)+' '+D2+', net '+f(t.n)+'?');
       document.getElementById('gsConfirm').hidden=false;
     }).catch(function(e){gsMsg('Couldn’t reach the sheet: '+e.message,true)});
   });
@@ -408,7 +465,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   document.getElementById('gsYes').addEventListener('click',function(){
     if(!gsPending)return;var t=gsPending;gsPending=null;document.getElementById('gsConfirm').hidden=true;gsMsg('Updating…');
     gsCall({action:'set',ups:t.u,downs:t.d}).then(function(j){var c=gsCfg();if(j.token&&c){c.token=j.token;gsSet(c)}
-      gsMsg('Sheet updated: ▲'+f(num(j.ups))+' ups, ▼'+f(num(j.downs))+' downs, net '+f(num(j.net))+'.')}).catch(function(e){gsMsg('Couldn’t update the sheet: '+e.message,true)});
+      gsMsg('Sheet updated: ▲'+f(num(j.ups))+' '+A2+', ▼'+f(num(j.downs))+' '+D2+', net '+f(num(j.net))+'.')}).catch(function(e){gsMsg('Couldn’t update the sheet: '+e.message,true)});
   });
   document.getElementById('gsUrl').value=GS_DEFAULT;
   try{var oldUrl=localStorage.getItem('sigpi-sheet-url');if(oldUrl)localStorage.removeItem('sigpi-sheet-url')}catch(e){}
