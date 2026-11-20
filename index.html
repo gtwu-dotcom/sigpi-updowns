@@ -8,7 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Attaboys">
 <meta name="theme-color" content="#5b3fa8">
-<meta name="app-version" content="14">
+<meta name="app-version" content="15">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235b3fa8'/%3E%3Cpath d='M20 38l12-16 12 16z' fill='white'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
@@ -86,7 +86,8 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
 .pg-b:disabled{opacity:.35;cursor:default}
 .pp{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--muted)}
 .pp input{width:68px;padding:7px 9px}
-.pt{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 14px;border-top:2px solid var(--line);background:var(--bg)}
+.pt{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 14px;border-bottom:2px solid var(--line);background:var(--bg)}
+.pt+.e{border-top:0}
 .pt div{display:flex;flex-direction:column;gap:2px;min-width:0}
 .pt span{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .pt b{font-family:var(--mono);font-size:17px;font-variant-numeric:tabular-nums}
@@ -187,9 +188,10 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   var editingId=null,lastBatch=[],entries=[],pendingDel=null,confirmClear=false,msg='',msgErr=false,lastKind='up',storageOk=true;
   // What the two kinds are called on screen. Stored data and the sheet still use up/down.
   var A1='Attaboy',A2='Attaboys',D1='Aw Shit',D2='Aw Shits';
-  // Pages for copying into a notebook: oldest entries first, so pages you've already copied don't change.
-  // page = -1 means "show the last page" (where new entries land).
-  var PPK='sigpi-perpage',perPage=20,page=-1,curPage=0,pageCount=0;
+  // Pages for copying into a notebook. Entries pasted from notebook pages keep their page number (e.pg);
+  // newer entries fill the last page up to "lines per page", then start new pages. Oldest first, so pages
+  // you've already copied don't change. page = -1 means "show the last page" (where new entries land).
+  var PPK='sigpi-perpage',perPage=16,page=-1,curPage=0,pageCount=0,pendingImport=null,undoSnap=null;
   try{var ppv=parseInt(localStorage.getItem(PPK),10);if(ppv>=5&&ppv<=60)perPage=ppv}catch(e){}
   function nm(kind,n){return kind==='up'?(n===1?A1:A2):(n===1?D1:D2)}
   function md(iso){var p=String(iso).split('-');return p.length===3?(+p[1])+'-'+(+p[2]):''}
@@ -199,8 +201,26 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     if(/^[A-Z]{1,4}$/.test(s))return s;
     return s.split(/[\s\-]+/).map(function(w){var m=w.match(/[a-z0-9]/i);return m?m[0]:''}).join('').toUpperCase().slice(0,4);
   }
-  // e.g. "+1 Attaboy from Brother GW    (11-19)" — four spaces, then the date, which never splits across lines
-  function lineHtml(e){return esc('+'+f(e.n)+' '+nm(e.kind,e.n)+' from Brother '+(initials(e.from)||'??'))+'    <span class="dt">('+esc(md(e.date))+')</span>'}
+  // Written the way it goes in the notebook:
+  //   +5 atta boys from brother JJ for charger (10-26)
+  //   -1 awshits from brother EP for not calling him sir (10-26)
+  function fromTxt(e){var s=String(e.from||'').trim();if(!s||/^(?:an?\s+)?brother$/i.test(s))return 'a brother';return 'brother '+(initials(s)||'??')}
+  function lineHtml(e){var up=e.kind==='up';
+    return esc((up?'+':'-')+f(e.n)+(up?' atta boys':' awshits')+' from '+fromTxt(e)+(e.reason?' for '+e.reason:''))+' <span class="dt">('+esc(md(e.date))+')</span>'}
+  function sgn(x){return x>0?'+'+f(x):f(x)}
+  function buildPages(){
+    var paged=[],loose=[];
+    entries.forEach(function(e,i){(e.pg?paged:loose).push([e,i])});
+    paged.sort(function(a,b){return a[0].pg-b[0].pg||a[1]-b[1]});
+    loose.sort(function(a,b){return a[0].date<b[0].date?-1:a[0].date>b[0].date?1:a[1]-b[1]});
+    var pages=[];
+    paged.forEach(function(p){var l=pages[pages.length-1];if(l&&l.num===p[0].pg)l.items.push(p);else pages.push({num:p[0].pg,items:[p]})});
+    var li=0,last=pages[pages.length-1];
+    if(last)while(li<loose.length&&last.items.length<perPage)last.items.push(loose[li++]);
+    var num=last?last.num:0;
+    while(li<loose.length){num++;pages.push({num:num,items:loose.slice(li,li+perPage)});li+=perPage}
+    return pages;
+  }
 
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function f(x){return String(Math.round(x*100)/100)}
@@ -209,9 +229,11 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   var idc=0;function newId(){idc++;return Date.now().toString(36)+idc.toString(36)+Math.random().toString(36).slice(2,6)}
   function clean(e){
     var n=Math.round(Math.min(Math.abs(Number(e.n))||1,999)*100)/100;
-    return {id:String(e.id||newId()),kind:e.kind==='down'?'down':'up',n:n>0?n:1,
+    var o={id:String(e.id||newId()),kind:e.kind==='down'?'down':'up',n:n>0?n:1,
       from:String(e.from||'').trim().slice(0,40),reason:String(e.reason||'').trim().slice(0,120),
       date:/^\d{4}-\d{2}-\d{2}$/.test(e.date||'')?e.date:today()};
+    var pg=parseInt(e.pg,10);if(pg>=1&&pg<=9999)o.pg=pg;
+    return o;
   }
   function load(){try{var v=localStorage.getItem(LS);var o=v?JSON.parse(v):null;return o&&Array.isArray(o.entries)?o.entries.map(clean):[]}catch(e){storageOk=false;return []}}
   function save(){try{localStorage.setItem(LS,JSON.stringify({entries:entries}));storageOk=true}catch(e){storageOk=false}}
@@ -225,18 +247,19 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     if(!storageOk){st.textContent='This browser isn’t saving data (private mode?). Your log will disappear when you close it.';st.className='status err'}
     else{st.textContent=msg;st.className='status'+(msgErr?' err':'')}
     document.getElementById('tools').innerHTML=entries.length?(confirmClear?'<span class="confirm">Delete your whole log? <button type="button" class="yes" id="clrY">Delete</button><button type="button" class="no" id="clrN">Keep</button></span>':'<button type="button" class="x" id="clr">Start over</button>'):'';
-    var list=entries.map(function(e,i){return [e,i]}).sort(function(a,b){return a[0].date<b[0].date?-1:a[0].date>b[0].date?1:a[1]-b[1]});
-    var pages=[];for(var i=0;i<list.length;i+=perPage)pages.push(list.slice(i,i+perPage));
+    var pages=buildPages();
     pageCount=pages.length;
     curPage=pages.length?(page<0?pages.length-1:Math.min(page,pages.length-1)):0;
     document.getElementById('pgnav').innerHTML=pages.length?
       '<button type="button" class="pg-b" data-pg="-1"'+(curPage<=0?' disabled':'')+' aria-label="Previous page">‹</button>'+
-      '<span>Page '+(curPage+1)+' of '+pages.length+'</span>'+
+      '<span>Page '+pages[curPage].num+' of '+pages[pages.length-1].num+'</span>'+
       '<button type="button" class="pg-b" data-pg="1"'+(curPage>=pages.length-1?' disabled':'')+' aria-label="Next page">›</button>':'';
-    var pg=pages[curPage]||[],pu=0,pd=0;
+    var pg=pages.length?pages[curPage].items:[],pu=0,pd=0;
     pg.forEach(function(p){if(p[0].kind==='up')pu+=p[0].n;else pd+=p[0].n});
     var pnet=pu-pd;
-    document.getElementById('log').innerHTML=pg.length?pg.map(function(p){
+    document.getElementById('log').innerHTML=pg.length?
+      '<div class="pt"><div><span>Atta boys</span><b class="u">'+sgn(pu)+'</b></div><div><span>Total</span><b>'+sgn(pnet)+'</b></div><div><span>Awshits</span><b class="d">'+sgn(-pd)+'</b></div></div>'+
+      pg.map(function(p){
       var e=p[0],up=e.kind==='up';
       var tail=pendingDel===e.id?'<span class="confirm">Remove? <button type="button" class="yes" data-y="'+esc(e.id)+'">Yes</button><button type="button" class="no" data-n>No</button></span>':'<span class="acts"><button type="button" class="x" data-ed="'+esc(e.id)+'">Edit</button><button type="button" class="x" data-d="'+esc(e.id)+'" aria-label="Remove entry">✕</button></span>';
       if(editingId===e.id){var k=esc(e.id);return '<form class="e ef" data-ef="'+k+'" autocomplete="off">'+
@@ -247,8 +270,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
         '<label class="f">Reason<input name="reason" type="text" maxlength="120" value="'+esc(e.reason)+'" placeholder="Why"></label>'+
         '<div class="ef-btns"><button type="submit" class="ef-save">Save</button><button type="button" class="ef-cancel" data-ec>Cancel</button></div></form>'}
       return '<div class="e '+(up?'u':'d')+'"><span class="ln">'+lineHtml(e)+'</span>'+tail+'</div>';
-    }).join('')+
-      '<div class="pt"><div><span>'+A2+'</span><b class="u">'+f(pu)+'</b></div><div><span>Net</span><b>'+(pnet>0?'+':'')+f(pnet)+'</b></div><div><span>'+D2+'</span><b class="d">'+f(pd)+'</b></div></div>'
+    }).join('')
       :'<div class="empty">Nothing logged yet.</div>';
   }
 
@@ -266,7 +288,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   });
 
   var BK='updowns-backup:';
-  function backupCode(){var gc=null;try{gc=JSON.parse(localStorage.getItem('sigpi-sheet')||'null')}catch(e){}return BK+btoa(unescape(encodeURIComponent(JSON.stringify({v:1,s:gc,e:entries.map(function(e){return [e.id,e.kind==='down'?'d':'u',e.n,e.from,e.reason,e.date]})}))))}
+  function backupCode(){var gc=null;try{gc=JSON.parse(localStorage.getItem('sigpi-sheet')||'null')}catch(e){}return BK+btoa(unescape(encodeURIComponent(JSON.stringify({v:1,s:gc,e:entries.map(function(e){return [e.id,e.kind==='down'?'d':'u',e.n,e.from,e.reason,e.date,e.pg||0]})}))))}
   document.getElementById('bk').addEventListener('click',function(){
     var bks=document.getElementById('bks'),ta=document.getElementById('bkt');
     if(!entries.length){bks.textContent='Nothing to back up yet.';bks.className='status';return}
@@ -277,7 +299,13 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
   function cap(s){return s.replace(/\b\w/g,function(c){return c.toUpperCase()})}
   function parse(text,ctx){
     ctx=ctx||{};
-    var s=' '+String(text).replace(/[−–—]/g,'-').replace(/\s+/g,' ').trim()+' ';
+    var raw=String(text);
+    // Notebook page header, e.g. "===== Page 3 =====" or "Page 1 (Comments)"
+    var ph=raw.match(/^[\s=#*_~-]*(?:page|pg)\.?\s*#?\s*(\d{1,4})\b/i);
+    if(ph&&!/\d\s*(?:atta|aw\s*sh|oh\s*sh|ups?\b|downs?\b)/i.test(raw))return {header:'page',page:+ph[1]};
+    // A page's totals line, e.g. "Atta boys: +31  Total: +30  Awshits: -1", is not an entry
+    if(/\b(?:total|net)\s*:\s*[+-]?\s*\d/i.test(raw)||(raw.match(/[a-z]\s*:\s*[+-]?\s*\d/gi)||[]).length>=2)return {skip:true};
+    var s=' '+raw.replace(/[−–—]/g,'-').replace(/\s+/g,' ').trim()+' ';
     // Attaboys count as ups and Aw/Oh Shits as downs, so the rest of the parser works unchanged.
     s=s.replace(/\batta[\s-]?boy(?:['’]?s)?\b/ig,' ups ').replace(/\b(?:oh|aw|awe|ah)[\s-]*sh[i!*1]ts?\b/ig,' downs ').replace(/\s+/g,' ');
     s=s.replace(/^\s*(?:[-•*·>~]+|\d+[.)](?=\s.*\d))\s*/,' ');
@@ -300,6 +328,12 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     if(hasDate&&!bare)return {header:'date',date:date};
     if(/^\s*(ups?|downs?)\s*[:\-]?\s*$/i.test(s))return {header:'kind',kind:/down/i.test(s)?'down':'up'};
     if(/^\s*(total|net|sum)\b/i.test(s))return {skip:true};
+    // A notebook line, date already taken out: "+5 atta boys from brother JJ for charger"
+    var nb=s.match(/^\s*\+?\s*(\d+(?:\.\d+)?)\s*(ups?|downs?)\s+from\s+(an?\s+brother|(?:brother|bro)\.?\s+[a-z][\w.'’-]*)(?:\s+for\s+(.*?))?\s*$/i);
+    if(nb){var nn=parseFloat(nb[1]);if(nn>0&&nn<=999){
+      var who=nb[3].replace(/^(?:brother|bro)\.?\s+/i,'');
+      if(/^an?\s/i.test(nb[3]))who='a brother';else if(who.length<=3)who=who.toUpperCase();
+      return {kind:/^d/i.test(nb[2])?'down':'up',n:nn,chunk:0,from:who,reason:(nb[4]||'').trim(),date:date,page:ctx.page}}}
     s=s.replace(/\s(?:from|by)\s*$/i,' ');
     var m=s.match(/\s(?:for|because|becuz|bc|b\/c|cuz|coz|cause|'cause|’cause|since|due to)\s+(.+)$/i);if(m){reason=m[1].trim();s=s.slice(0,m.index)+' '}
     if(reason&&!/\s(?:from|by)\s+[a-z]/i.test(s.replace(/\s(?:by|in)\s+\d+(?:\.\d+)?s\b/i,' '))){var rf=(' '+reason).match(/\s(?:from|by)\s+([a-z][\w.'’-]*(?:\s+[a-z][\w.'’-]*)?)\s*[.!]?$/i);if(rf){from=cap(rf[1]);reason=(' '+reason).slice(0,rf.index).trim()}}
@@ -330,7 +364,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
       if(!from&&segs.length>1&&/^[a-z][\w.'’-]*(\s[a-z][\w.'’-]*)?$/i.test(segs[0])){from=cap(segs.shift())}
       if(!reason&&segs.length)reason=segs.join(' - ');
     }
-    return {kind:kind,n:n,chunk:each,from:from,reason:reason,date:date};
+    return {kind:kind,n:n,chunk:each,from:from,reason:reason,date:date,page:ctx.page};
   }
   document.getElementById('q').addEventListener('submit',function(ev){
     ev.preventDefault();
@@ -340,52 +374,68 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
       var data;try{data=JSON.parse(decodeURIComponent(escape(atob(raw.slice(bi+BK.length).replace(/\s+/g,'')))))}catch(err){data=null}
       if(!data||!Array.isArray(data.e)){qs.textContent='That backup code looks incomplete. Copy it again and paste the whole thing.';qs.className='status err';return}
       var have={},added=[];entries.forEach(function(e){have[e.id]=1});
-      data.e.forEach(function(x){if(!Array.isArray(x))return;var e=clean({id:x[0],kind:x[1]==='d'?'down':'up',n:x[2],from:x[3],reason:x[4],date:x[5]});if(!have[e.id]){have[e.id]=1;entries.push(e);added.push(e.id)}});
+      data.e.forEach(function(x){if(!Array.isArray(x))return;var e=clean({id:x[0],kind:x[1]==='d'?'down':'up',n:x[2],from:x[3],reason:x[4],date:x[5],pg:x[6]});if(!have[e.id]){have[e.id]=1;entries.push(e);added.push(e.id)}});
       try{if(data.s&&data.s.url&&!localStorage.getItem('sigpi-sheet')){localStorage.setItem('sigpi-sheet',JSON.stringify(data.s));gsShow()}}catch(err){}
-      lastBatch=added;save();page=-1;box.value='';fit();
+      lastBatch=added;undoSnap=null;save();page=-1;box.value='';fit();
       qs.innerHTML=esc(added.length?'Restored '+added.length+(added.length===1?' entry':' entries'):'Everything in that backup is already here')+(added.length?' <button type="button" class="x" id="undo">Undo</button>':'');
       qs.className='status';msg='';render();return;
     }
     var lines=box.value.split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean);
     if(!lines.length){qs.textContent='Type what happened first.';qs.className='status err';return}
-    var parsed=[],bad=[];
-    var ctx={},skipped=0;lines.forEach(function(l){var r=parse(l,ctx);if(r.header==='date'){ctx.date=r.date;return}if(r.header==='kind'){ctx.kind=r.kind;return}if(r.skip||(r.err&&!/\d/.test(l))){skipped++;return}if(r.err)bad.push({line:l,err:r.err});else parsed.push(r)});
-    if(!parsed.length&&!bad.length){qs.textContent=skipped?'No '+A2+' or '+D2+' found in that.':'Nothing to add in that.';qs.className='status err';return}
+    var parsed=[],bad=[],pageHeads=0;
+    var ctx={},skipped=0;lines.forEach(function(l){var r=parse(l,ctx);if(r.header==='page'){ctx.page=r.page;pageHeads++;return}if(r.header==='date'){ctx.date=r.date;return}if(r.header==='kind'){ctx.kind=r.kind;return}if(r.skip||(r.err&&!/\d/.test(l))){skipped++;return}if(r.err)bad.push({line:l,err:r.err});else parsed.push(r)});
+    if(!parsed.length&&!bad.length){qs.textContent=skipped||pageHeads?'No '+A2+' or '+D2+' found in that.':'Nothing to add in that.';qs.className='status err';return}
     if(lines.length===1&&bad.length){qs.textContent=bad[0].err;qs.className='status err';return}
     var total=0;parsed.forEach(function(r){total+=Math.ceil(r.n/(r.chunk>0?r.chunk:r.n)-1e-9)});
     if(total>50000){qs.textContent='That’s over 50,000 separate entries. Paste it in smaller pieces.';qs.className='status err';return}
+    // Pasting notebook pages on top of an existing log would count everything twice, so ask first.
+    if(pageHeads&&entries.length){
+      pendingImport={parsed:parsed,bad:bad};
+      qs.innerHTML=esc('That’s '+total+' entries on '+pageHeads+(pageHeads===1?' page':' pages')+'. Your log already has '+entries.length+'. Replace your log with these, or add them to it?')+
+        ' <span class="confirm"><button type="button" class="yes" id="impR">Replace my log</button><button type="button" class="no" id="impA">Add to it</button><button type="button" class="no" id="impC">Cancel</button></span>';
+      qs.className='status';return;
+    }
+    commitParsed(parsed,bad,false);
+  });
+  function commitParsed(parsed,bad,replace){
+    var box=document.getElementById('qt'),qs=document.getElementById('qs');
+    undoSnap=replace?entries.slice():null;
+    if(replace)entries=[];
     var batch=[],ups=0,downs=0;
     parsed.forEach(function(r){
       var chunk=r.chunk>0?r.chunk:r.n,count=Math.ceil(r.n/chunk-1e-9),left=r.n;
-      for(var i=0;i<count;i++){var amt=Math.min(chunk,Math.round(left*100)/100);left-=amt;var e=clean({kind:r.kind,n:amt,from:r.from,reason:r.reason,date:r.date});entries.push(e);batch.push(e.id)}
+      for(var i=0;i<count;i++){var amt=Math.min(chunk,Math.round(left*100)/100);left-=amt;var e=clean({kind:r.kind,n:amt,from:r.from,reason:r.reason,date:r.date,pg:r.page});entries.push(e);batch.push(e.id)}
       if(r.kind==='up')ups+=r.n;else downs+=r.n;
     });
-    lastBatch=batch;if(batch.length){save();page=-1}
+    lastBatch=batch;if(batch.length||replace){save();page=-1}
     box.value=bad.map(function(b){return b.line}).join('\n');fit();
     var parts=[];if(ups)parts.push('▲ '+f(ups)+' '+nm('up',ups));if(downs)parts.push('▼ '+f(downs)+' '+nm('down',downs));
     var txt=parts.length?parts.join(', ')+' added'+(batch.length>1?' ('+batch.length+' entries)':''):'';
+    if(replace&&undoSnap.length)txt+=', replacing your old log';
     if(bad.length)txt+=(txt?'. ':'')+bad.length+(bad.length===1?' line':' lines')+' couldn’t be read (left in the box to fix)';
-    qs.innerHTML=esc(txt)+(batch.length?' <button type="button" class="x" id="undo">Undo</button>':'');
+    qs.innerHTML=esc(txt)+(batch.length||replace?' <button type="button" class="x" id="undo">Undo</button>':'');
     qs.className='status'+(bad.length?' err':'');msg='';render();
-  });
+  }
   function fit(){var t=document.getElementById('qt');t.style.height='auto';t.style.height=Math.min(t.scrollHeight+2,260)+'px'}
   document.getElementById('qt').addEventListener('keydown',function(ev){if(ev.key==='Enter'&&!ev.shiftKey&&!ev.isComposing){ev.preventDefault();var fm=document.getElementById('q');if(fm.requestSubmit)fm.requestSubmit();else fm.dispatchEvent(new Event('submit',{cancelable:true}))}});
   document.getElementById('qt').addEventListener('input',fit);
-  document.getElementById('qt').addEventListener('input',function(){var qs=document.getElementById('qs');if(qs.className.indexOf('err')>-1){qs.textContent='';qs.className='status'}});
+  document.getElementById('qt').addEventListener('input',function(){var qs=document.getElementById('qs');if(qs.className.indexOf('err')>-1||pendingImport){pendingImport=null;qs.textContent='';qs.className='status'}});
 
   document.addEventListener('submit',function(ev){
     var fm=ev.target.closest&&ev.target.closest('form[data-ef]');if(!fm)return;
     ev.preventDefault();
     var id=fm.getAttribute('data-ef'),n=parseFloat(fm.elements.n.value);
     if(!(n>0)){fm.elements.n.focus();return}
-    for(var i=0;i<entries.length;i++)if(entries[i].id===id){entries[i]=clean({id:id,kind:fm.elements.kind.value,n:n,from:fm.elements.from.value,reason:fm.elements.reason.value,date:fm.elements.date.value||entries[i].date});break}
+    for(var i=0;i<entries.length;i++)if(entries[i].id===id){entries[i]=clean({id:id,kind:fm.elements.kind.value,n:n,from:fm.elements.from.value,reason:fm.elements.reason.value,date:fm.elements.date.value||entries[i].date,pg:entries[i].pg});break}
     editingId=null;save();msg='Entry updated.';msgErr=false;render();
   });
 
   document.addEventListener('click',function(ev){
     var t=ev.target;
     var pb=t.closest('[data-pg]');if(pb){if(pb.disabled)return;var nx=curPage+parseInt(pb.getAttribute('data-pg'),10);page=nx>=pageCount-1?-1:Math.max(0,nx);editingId=null;pendingDel=null;render();return}
-    if(t.closest('#undo')){var ids=lastBatch;entries=entries.filter(function(e){return ids.indexOf(e.id)<0});lastBatch=[];save();var q=document.getElementById('qs');q.textContent='';q.className='status';render();return}
+    if(t.closest('#impR')||t.closest('#impA')){var pi=pendingImport;pendingImport=null;if(pi)commitParsed(pi.parsed,pi.bad,!!t.closest('#impR'));return}
+    if(t.closest('#impC')){pendingImport=null;var qc=document.getElementById('qs');qc.textContent='';qc.className='status';return}
+    if(t.closest('#undo')){if(undoSnap){entries=undoSnap;undoSnap=null}else{var ids=lastBatch;entries=entries.filter(function(e){return ids.indexOf(e.id)<0})}lastBatch=[];save();var q=document.getElementById('qs');q.textContent='';q.className='status';render();return}
     if(t.closest('#clr')){confirmClear=true;render();return}
     if(t.closest('#clrN')){confirmClear=false;render();return}
     if(t.closest('#clrY')){entries=[];confirmClear=false;save();msg='Log cleared.';msgErr=false;render();return}
@@ -404,7 +454,7 @@ button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid transpare
     page=-1;editingId=null;pendingDel=null;render();
   });
 
-  var VER='14';
+  var VER='15';
   function checkUpdate(){
     if(!window.fetch)return;
     fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():''}).then(function(t){
